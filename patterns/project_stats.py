@@ -20,9 +20,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from extract import extract_conversation
 
 try:
-    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path, resolve_project_name, REJECTION_PATTERNS
 except ImportError:
-    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path, resolve_project_name, REJECTION_PATTERNS
 OUTPUT_FILE = _output_path("project_stats")
 
 # Pricing per million tokens
@@ -45,26 +45,14 @@ def classify_model(model_name):
 def derive_project_name(project_dir_name, cwd):
     """Derive a human-readable project name from the project directory and cwd.
 
-    The project_dir_name encodes the path (e.g. -Users-federicodeponte-rocketlist-minimal).
-    The cwd gives the actual working directory during the session.
-    We use cwd as the primary identifier, falling back to project_dir_name.
+    Uses the centralized resolve_project_name() for consistent naming.
+    Tries cwd first (real path), falls back to encoded project_dir_name.
     """
     if cwd:
-        # Use the last meaningful path component(s)
-        parts = Path(cwd).parts
-        home = str(Path.home())
-        if cwd == home or cwd == home + "/":
-            return "~ (home)"
-        # Strip home prefix for readability
-        if cwd.startswith(home):
-            rel = cwd[len(home):].strip("/")
-            return f"~/{rel}" if rel else "~ (home)"
-        return cwd
-    # Fallback: decode the project dir name
-    decoded = project_dir_name.replace("-", "/")
-    if decoded.startswith("/Users/federicodeponte/"):
-        return "~/" + decoded[len("/Users/federicodeponte/"):]
-    return decoded
+        result = resolve_project_name(cwd)
+        if result != "Unknown":
+            return result
+    return resolve_project_name(project_dir_name)
 
 
 def collect_all_sessions():
@@ -195,7 +183,9 @@ def parse_session_fast(filepath, proj_dir_name):
                             if block.get("is_error"):
                                 errors += 1
                                 c = block.get("content", "")
-                                if isinstance(c, str) and "rejected" in c.lower():
+                                if isinstance(c, str) and any(
+                                    pat in c.lower() for pat in REJECTION_PATTERNS
+                                ):
                                     rejections += 1
 
             elif msg_type == "system":

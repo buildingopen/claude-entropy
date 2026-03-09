@@ -38,6 +38,20 @@ python3 analyze.py deep --limit 3 --min-size 1000
 python3 -m pytest tests/ -v
 ```
 
+## Configuration
+
+- `CLAUDE_PROJECTS_DIR` env var overrides the default `~/.claude/projects/` data path
+- Default Gemini model: `gemini-3-flash-preview` (override with `--model`)
+
+## Adding New Projects
+
+Add project directory mappings in `patterns/config.py` via `PROJECT_NAME_MAP`:
+```python
+PROJECT_NAME_MAP = {
+    "directory-basename": "Friendly Name",
+}
+```
+
 ## Data Source
 
 Claude Code stores conversations as JSONL in `~/.claude/projects/`. Each line is one of:

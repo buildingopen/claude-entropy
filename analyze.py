@@ -89,7 +89,7 @@ Be data-driven. Cite specific numbers.
 """
 
 
-def analyze_with_gemini(prompt, model_name="gemini-2.5-flash"):
+def analyze_with_gemini(prompt, model_name="gemini-3-flash-preview"):
     """Send analysis prompt to Gemini and return response."""
     client = genai.Client(api_key=GEMINI_API_KEY)
     response = client.models.generate_content(
@@ -104,7 +104,7 @@ def analyze_with_gemini(prompt, model_name="gemini-2.5-flash"):
     return response.text
 
 
-def deep_analysis(limit=5, min_size_kb=500, max_size_kb=None, model_name="gemini-2.5-flash", include_subagents=False):
+def deep_analysis(limit=5, min_size_kb=500, max_size_kb=None, model_name="gemini-3-flash-preview", include_subagents=False):
     """Run deep analysis on recent large conversations."""
     size_desc = f"min {min_size_kb}KB"
     if max_size_kb:
@@ -161,7 +161,7 @@ def deep_analysis(limit=5, min_size_kb=500, max_size_kb=None, model_name="gemini
     return result
 
 
-def batch_stats(limit=50, min_size_kb=50, model_name="gemini-2.5-flash", include_subagents=False):
+def batch_stats(limit=50, min_size_kb=50, model_name="gemini-3-flash-preview", include_subagents=False):
     """Run aggregate stats analysis across many sessions."""
     print(f"Collecting stats from up to {limit} conversations...")
     convos = list_conversations(min_size_kb=min_size_kb, limit=limit, include_subagents=include_subagents)
@@ -313,7 +313,7 @@ if __name__ == "__main__":
                         help="Minimum file size in KB (default: 500 for deep, 50 for batch/local)")
     parser.add_argument("--max-size", type=int, default=None,
                         help="Maximum file size in KB (e.g., 10240 for 10MB)")
-    parser.add_argument("--model", type=str, default="gemini-2.5-flash",
+    parser.add_argument("--model", type=str, default="gemini-3-flash-preview",
                         help="Gemini model to use")
     parser.add_argument("--include-subagents", action="store_true",
                         help="Include subagent conversations in analysis")

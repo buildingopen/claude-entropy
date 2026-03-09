@@ -19,9 +19,9 @@ from pathlib import Path
 
 
 try:
-    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path, resolve_project_name
 except ImportError:
-    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path, resolve_project_name
 PROJECTS_DIR = CLAUDE_PROJECTS_DIR
 OUTPUT_PATH = _output_path("session_outcomes")
 
@@ -67,7 +67,8 @@ def analyze_session(filepath):
     project_dir = filepath.parent
     while project_dir != PROJECTS_DIR and project_dir.parent != PROJECTS_DIR:
         project_dir = project_dir.parent
-    project_name = project_dir.name if project_dir.parent == PROJECTS_DIR else filepath.parent.name
+    raw_name = project_dir.name if project_dir.parent == PROJECTS_DIR else filepath.parent.name
+    project_name = resolve_project_name(raw_name)
 
     # Metrics
     files_edited = set()

@@ -12,7 +12,20 @@ from datetime import datetime
 from pathlib import Path
 
 
-CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
+CLAUDE_PROJECTS_DIR = Path(os.environ.get("CLAUDE_PROJECTS_DIR", str(Path.home() / ".claude" / "projects")))
+
+REJECTION_PATTERNS = [
+    "the user rejected",
+    "user doesn't want to proceed",
+    "tool use was rejected",
+    "request interrupted by user",
+]
+
+
+def _is_rejection(text):
+    """Check if error text indicates a user rejection (not just any 'rejected' string)."""
+    t = text.lower()
+    return any(pat in t for pat in REJECTION_PATTERNS)
 
 
 def extract_text_content(content_blocks):
@@ -155,7 +168,7 @@ def extract_conversation(filepath):
                         if block.get("is_error"):
                             errors += 1
                             c = block.get("content", "")
-                            if isinstance(c, str) and "rejected" in c.lower():
+                            if isinstance(c, str) and _is_rejection(c):
                                 rejections += 1
 
                 text = extract_text_content(content)

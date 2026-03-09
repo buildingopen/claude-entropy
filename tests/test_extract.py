@@ -144,6 +144,58 @@ def test_extract_errors_and_rejections():
         fp.unlink()
 
 
+def test_parser_rejected_is_not_user_rejection():
+    """'rejected by the parser' is an error but NOT a user rejection."""
+    session = [
+        {
+            "type": "user",
+            "timestamp": "2026-03-01T10:00:00Z",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "is_error": True,
+                        "content": "The argument was rejected by the parser",
+                    },
+                ],
+            },
+        },
+    ]
+    fp = make_jsonl(session)
+    try:
+        convo = extract_conversation(fp)
+        assert convo["stats"]["errors"] == 1
+        assert convo["stats"]["rejections"] == 0
+    finally:
+        fp.unlink()
+
+
+def test_user_rejected_is_rejection():
+    """'The user rejected this tool call' is both an error and a rejection."""
+    session = [
+        {
+            "type": "user",
+            "timestamp": "2026-03-01T10:00:00Z",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "is_error": True,
+                        "content": "The user rejected this tool call",
+                    },
+                ],
+            },
+        },
+    ]
+    fp = make_jsonl(session)
+    try:
+        convo = extract_conversation(fp)
+        assert convo["stats"]["errors"] == 1
+        assert convo["stats"]["rejections"] == 1
+    finally:
+        fp.unlink()
+
+
 def test_extract_text_content_string():
     assert extract_text_content("hello") == "hello"
 

@@ -24,27 +24,9 @@ PATTERN_ORDER = [
 ]
 
 
-def extract_summary(content, max_lines=80):
-    """Extract the summary/top section of a pattern output, skip per-session details."""
-    lines = content.split("\n")
-    summary_lines = []
-    in_detail = False
-
-    for line in lines:
-        upper = line.strip().upper()
-        if any(skip in upper for skip in [
-            "PER-SESSION DETAILS", "DETAILED FINDINGS", "PER SESSION",
-            "ALL INSTANCES", "FULL LISTING", "RAW DATA",
-        ]):
-            in_detail = True
-        if in_detail:
-            continue
-        summary_lines.append(line)
-        if len(summary_lines) >= max_lines:
-            summary_lines.append("... [truncated, see full output in patterns/]")
-            break
-
-    return "\n".join(summary_lines).rstrip()
+def extract_summary(content):
+    """Return the full pattern content for inclusion in FINDINGS.md."""
+    return content.rstrip()
 
 
 def main():
@@ -58,7 +40,7 @@ def main():
 
         content = md_path.read_text()
         summary = extract_summary(content)
-        sections.append(f"## {title}\n\n```\n{summary}\n```\n")
+        sections.append(f"## {title}\n\n{summary}\n")
 
     report = f"""# Transcript Analysis Findings
 

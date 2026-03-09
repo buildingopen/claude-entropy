@@ -14,51 +14,18 @@ class TestExtractSummary:
         content = "Line 1\nLine 2\nLine 3"
         assert extract_summary(content) == content
 
-    def test_skips_per_session_details(self):
+    def test_preserves_all_content(self):
         content = "Summary here\nMore summary\n## Per-Session Details\nDetail 1\nDetail 2"
         result = extract_summary(content)
         assert "Summary here" in result
-        assert "More summary" in result
-        assert "Detail 1" not in result
-        assert "Detail 2" not in result
+        assert "Detail 1" in result
+        assert "Detail 2" in result
 
-    def test_skips_detailed_findings(self):
-        content = "Top section\n## Detailed Findings\nShould be skipped"
+    def test_no_truncation(self):
+        content = "\n".join(f"Line {i}" for i in range(200))
         result = extract_summary(content)
-        assert "Top section" in result
-        assert "Should be skipped" not in result
-
-    def test_skips_all_instances(self):
-        content = "Summary\n## All Instances\nInstance 1"
-        result = extract_summary(content)
-        assert "Summary" in result
-        assert "Instance 1" not in result
-
-    def test_skips_full_listing(self):
-        content = "Summary\n## Full Listing\nListed item"
-        result = extract_summary(content)
-        assert "Summary" in result
-        assert "Listed item" not in result
-
-    def test_skips_raw_data(self):
-        content = "Summary\n## Raw Data\nRaw line"
-        result = extract_summary(content)
-        assert "Summary" in result
-        assert "Raw line" not in result
-
-    def test_max_lines_truncation(self):
-        content = "\n".join(f"Line {i}" for i in range(100))
-        result = extract_summary(content, max_lines=10)
-        lines = result.split("\n")
-        # 10 content lines + 1 truncation notice
-        assert len(lines) == 11
-        assert "truncated" in lines[-1]
-
-    def test_case_insensitive_skip(self):
-        content = "Summary\n## per-session details\nHidden"
-        result = extract_summary(content)
-        assert "Summary" in result
-        assert "Hidden" not in result
+        assert "Line 199" in result
+        assert "truncated" not in result
 
 
 class TestGenerateFindings:
@@ -86,3 +53,25 @@ class TestGenerateFindings:
         assert "Error stats: 5 total errors" in content
         # Patterns without files get "Not yet generated" message
         assert "Not yet generated" in content
+
+    def test_no_code_fences_in_output(self, tmp_path, monkeypatch):
+        """Pattern .md files already contain proper markdown, no code fences needed."""
+        import generate_findings
+
+        patterns_dir = tmp_path / "patterns"
+        patterns_dir.mkdir()
+        output_file = tmp_path / "FINDINGS.md"
+
+        monkeypatch.setattr(generate_findings, "PATTERNS_DIR", patterns_dir)
+        monkeypatch.setattr(generate_findings, "OUTPUT_FILE", output_file)
+
+        # Create pattern files with markdown content (no code fences in source)
+        (patterns_dir / "error_taxonomy.md").write_text("# Errors\n\n| Type | Count |\n|------|-------|\n| Timeout | 5 |")
+        (patterns_dir / "session_outcomes.md").write_text("# Outcomes\n\n- SUCCESS: 10\n- FAILURE: 2")
+
+        main()
+
+        content = output_file.read_text()
+        # Output must not wrap pattern content in code fences
+        assert "```\n# Errors" not in content
+        assert "```\n# Outcomes" not in content

@@ -19,9 +19,9 @@ from difflib import SequenceMatcher
 from datetime import datetime
 
 try:
-    from patterns.config import CLAUDE_PROJECTS_DIR, MIN_SESSION_SIZE, MAX_SESSIONS, output_path as _output_path
+    from patterns.config import CLAUDE_PROJECTS_DIR, MIN_SESSION_SIZE, MAX_SESSIONS, output_path as _output_path, REJECTION_PATTERNS
 except ImportError:
-    from config import CLAUDE_PROJECTS_DIR, MIN_SESSION_SIZE, MAX_SESSIONS, output_path as _output_path
+    from config import CLAUDE_PROJECTS_DIR, MIN_SESSION_SIZE, MAX_SESSIONS, output_path as _output_path, REJECTION_PATTERNS
 PROJECTS_DIR = CLAUDE_PROJECTS_DIR
 MIN_SIZE = MIN_SESSION_SIZE
 SIMILARITY_THRESHOLD = 0.6  # For detecting similar inputs
@@ -329,7 +329,8 @@ def detect_user_rejections(tool_calls: list[dict]) -> list[dict]:
     rejections = []
 
     for c in tool_calls:
-        if c["result_error"] and "rejected" in c.get("result_text", "").lower():
+        result_lower = c.get("result_text", "").lower()
+        if c["result_error"] and any(pat in result_lower for pat in REJECTION_PATTERNS):
             rejections.append(c)
 
     # Group consecutive rejections

@@ -18,9 +18,12 @@ from collections import defaultdict
 from difflib import SequenceMatcher
 from datetime import datetime
 
-PROJECTS_DIR = Path.home() / ".claude" / "projects"
-MIN_SIZE = 100 * 1024  # 100KB
-MAX_SESSIONS = 50
+try:
+    from patterns.config import CLAUDE_PROJECTS_DIR, MIN_SESSION_SIZE, MAX_SESSIONS, output_path as _output_path
+except ImportError:
+    from config import CLAUDE_PROJECTS_DIR, MIN_SESSION_SIZE, MAX_SESSIONS, output_path as _output_path
+PROJECTS_DIR = CLAUDE_PROJECTS_DIR
+MIN_SIZE = MIN_SESSION_SIZE
 SIMILARITY_THRESHOLD = 0.6  # For detecting similar inputs
 
 
@@ -548,7 +551,7 @@ def main():
     report = "\n".join(output_lines)
 
     # Write to file
-    output_path = Path(__file__).parent / "retry_loops.txt"
+    output_path = _output_path("retry_loops")
     with open(output_path, "w") as f:
         f.write(report)
 

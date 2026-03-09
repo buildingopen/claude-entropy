@@ -20,7 +20,11 @@ import sys
 from pathlib import Path
 from dataclasses import dataclass, field
 
-PROJECTS_DIR = Path.home() / ".claude" / "projects"
+try:
+    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+except ImportError:
+    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+PROJECTS_DIR = CLAUDE_PROJECTS_DIR
 
 # Patterns to detect self-scoring in assistant messages
 SCORE_PATTERNS = [
@@ -416,7 +420,7 @@ def format_instance(idx: int, inst: ScoringInstance) -> str:
 
 
 def main():
-    output_path = Path.home() / "transcript-analyzer" / "patterns" / "self_scoring.txt"
+    output_path = _output_path("self_scoring")
 
     if not PROJECTS_DIR.exists():
         print(f"Error: {PROJECTS_DIR} does not exist", file=sys.stderr)

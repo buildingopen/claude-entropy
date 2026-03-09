@@ -7,7 +7,6 @@ while stripping noise (progress updates, file snapshots, binary content).
 
 import json
 import os
-import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -203,13 +202,13 @@ def extract_conversation(filepath):
     }
 
 
-def list_conversations(projects_dir=None, min_size_kb=10, max_size_kb=None, limit=None):
+def list_conversations(projects_dir=None, min_size_kb=10, max_size_kb=None,
+                       limit=None, include_subagents=False):
     """List all conversation files, sorted by recency."""
     base = Path(projects_dir) if projects_dir else CLAUDE_PROJECTS_DIR
     convos = []
     for root, dirs, files in os.walk(base):
-        # Skip subagent conversations
-        if "subagents" in root:
+        if not include_subagents and "subagents" in root:
             continue
         for fn in files:
             if fn.endswith(".jsonl"):

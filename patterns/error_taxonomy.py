@@ -14,6 +14,11 @@ from collections import defaultdict, Counter
 from pathlib import Path
 from datetime import datetime
 
+try:
+    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+except ImportError:
+    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+
 
 # ---------------------------------------------------------------------------
 # Error classification rules
@@ -352,7 +357,7 @@ def truncate_msg(text: str, max_len: int = 120) -> str:
 
 
 def main():
-    projects_dir = os.path.expanduser("~/.claude/projects")
+    projects_dir = str(CLAUDE_PROJECTS_DIR)
     jsonl_files = glob.glob(os.path.join(projects_dir, "**", "*.jsonl"), recursive=True)
 
     print(f"Found {len(jsonl_files)} JSONL files to process...")
@@ -431,7 +436,7 @@ def main():
     # ---------------------------------------------------------------------------
     # Generate markdown report
     # ---------------------------------------------------------------------------
-    output_path = os.path.expanduser("~/transcript-analyzer/patterns/error_taxonomy.md")
+    output_path = str(_output_path("error_taxonomy"))
     lines = []
 
     def w(text=""):

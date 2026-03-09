@@ -19,8 +19,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from extract import extract_conversation
 
-CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
-OUTPUT_FILE = Path(__file__).resolve().parent / "project_stats.md"
+try:
+    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+except ImportError:
+    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+OUTPUT_FILE = _output_path("project_stats")
 
 # Pricing per million tokens
 PRICING = {

@@ -16,8 +16,12 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-PROJECTS_DIR = os.path.expanduser("~/.claude/projects")
-OUTPUT_FILE = os.path.expanduser("~/transcript-analyzer/patterns/hook_rejections.txt")
+try:
+    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+except ImportError:
+    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+PROJECTS_DIR = str(CLAUDE_PROJECTS_DIR)
+OUTPUT_FILE = str(_output_path("hook_rejections"))
 
 # Hook error patterns in toolUseResult or is_error content
 HOOK_ERROR_PREFIX = "PreToolUse:"

@@ -18,8 +18,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-PROJECTS_DIR = Path.home() / ".claude" / "projects"
-OUTPUT_PATH = Path.home() / "transcript-analyzer" / "patterns" / "session_outcomes.md"
+try:
+    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+except ImportError:
+    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+PROJECTS_DIR = CLAUDE_PROJECTS_DIR
+OUTPUT_PATH = _output_path("session_outcomes")
 
 POSITIVE_WORDS = {"thanks", "thank", "perfect", "great", "done", "awesome", "nice", "good", "works", "excellent", "beautiful", "love"}
 DEPLOY_KEYWORDS = {"vercel", "deploy", "push", "railway", "render", "netlify", "heroku"}

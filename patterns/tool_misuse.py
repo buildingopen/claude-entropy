@@ -19,7 +19,10 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
-CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
+try:
+    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+except ImportError:
+    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path
 
 # Regex patterns for detecting Bash misuse
 BASH_AS_READ_PATTERNS = [
@@ -550,7 +553,7 @@ def main():
     print("\n" + report)
 
     # Save report
-    output_path = Path(__file__).parent / "tool_misuse.txt"
+    output_path = _output_path("tool_misuse")
     with open(output_path, "w") as f:
         f.write(report)
     print(f"\nReport saved to: {output_path}")

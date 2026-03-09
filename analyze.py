@@ -22,7 +22,10 @@ from extract import (
 )
 
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyA2zWeMRowlbBWdRFsLj5EWtAPc1AMyjMc")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+if not GEMINI_API_KEY:
+    print("ERROR: Set GEMINI_API_KEY or GOOGLE_API_KEY environment variable")
+    sys.exit(1)
 
 ANALYSIS_PROMPT = """You are an expert at analyzing human-AI coding agent interactions. You're reviewing transcripts from Claude Code sessions (an AI coding assistant used in the terminal).
 
@@ -101,13 +104,13 @@ def analyze_with_gemini(prompt, model_name="gemini-2.5-flash"):
     return response.text
 
 
-def deep_analysis(limit=5, min_size_kb=500, max_size_kb=None, model_name="gemini-2.5-flash"):
+def deep_analysis(limit=5, min_size_kb=500, max_size_kb=None, model_name="gemini-2.5-flash", include_subagents=False):
     """Run deep analysis on recent large conversations."""
     size_desc = f"min {min_size_kb}KB"
     if max_size_kb:
         size_desc += f", max {max_size_kb}KB"
     print(f"Finding {limit} recent conversations ({size_desc})...")
-    convos = list_conversations(min_size_kb=min_size_kb, max_size_kb=max_size_kb, limit=limit)
+    convos = list_conversations(min_size_kb=min_size_kb, max_size_kb=max_size_kb, limit=limit, include_subagents=include_subagents)
 
     if not convos:
         print("No conversations found matching criteria.")
@@ -158,10 +161,10 @@ def deep_analysis(limit=5, min_size_kb=500, max_size_kb=None, model_name="gemini
     return result
 
 
-def batch_stats(limit=50, min_size_kb=50, model_name="gemini-2.5-flash"):
+def batch_stats(limit=50, min_size_kb=50, model_name="gemini-2.5-flash", include_subagents=False):
     """Run aggregate stats analysis across many sessions."""
     print(f"Collecting stats from up to {limit} conversations...")
-    convos = list_conversations(min_size_kb=min_size_kb, limit=limit)
+    convos = list_conversations(min_size_kb=min_size_kb, limit=limit, include_subagents=include_subagents)
 
     stats_list = []
     for mtime, size, fp in convos:
@@ -210,9 +213,9 @@ def batch_stats(limit=50, min_size_kb=50, model_name="gemini-2.5-flash"):
     return result
 
 
-def local_stats(limit=100, min_size_kb=50):
+def local_stats(limit=100, min_size_kb=50, include_subagents=False):
     """Run local-only stats analysis (no Gemini call)."""
-    convos = list_conversations(min_size_kb=min_size_kb, limit=limit)
+    convos = list_conversations(min_size_kb=min_size_kb, limit=limit, include_subagents=include_subagents)
 
     total_tokens_in = 0
     total_tokens_out = 0
@@ -259,6 +262,10 @@ def local_stats(limit=100, min_size_kb=50):
     print(f"\n{'='*60}")
     print(f"  CLAUDE CODE USAGE STATS ({len(convos)} sessions)")
     print(f"{'='*60}\n")
+
+    if not convos:
+        print("No conversations found matching criteria.")
+        return
 
     print(f"Total sessions:      {len(convos)}")
     print(f"Total messages:      {total_messages:,}")
@@ -308,6 +315,8 @@ if __name__ == "__main__":
                         help="Maximum file size in KB (e.g., 10240 for 10MB)")
     parser.add_argument("--model", type=str, default="gemini-2.5-flash",
                         help="Gemini model to use")
+    parser.add_argument("--include-subagents", action="store_true",
+                        help="Include subagent conversations in analysis")
     args = parser.parse_args()
 
     if args.mode == "deep":
@@ -316,15 +325,18 @@ if __name__ == "__main__":
             min_size_kb=args.min_size or 500,
             max_size_kb=args.max_size,
             model_name=args.model,
+            include_subagents=args.include_subagents,
         )
     elif args.mode == "batch":
         batch_stats(
             limit=args.limit or 50,
             min_size_kb=args.min_size or 50,
             model_name=args.model,
+            include_subagents=args.include_subagents,
         )
     elif args.mode == "local":
         local_stats(
             limit=args.limit or 100,
             min_size_kb=args.min_size or 50,
+            include_subagents=args.include_subagents,
         )

@@ -16,7 +16,11 @@ from collections import defaultdict
 from pathlib import Path
 
 
-PROJECTS_DIR = Path.home() / ".claude" / "projects"
+try:
+    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+except ImportError:
+    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+PROJECTS_DIR = CLAUDE_PROJECTS_DIR
 
 # Patterns that indicate the "exceeds maximum" error
 ERROR_PATTERNS = [
@@ -280,14 +284,15 @@ def main():
     # Sort by error count descending
     sorted_sessions = sorted(session_map.values(), key=lambda x: x["error_count"], reverse=True)
 
-    # Print report
-    print("=" * 80)
-    print("LARGE FILE ERROR ANALYSIS")
-    print(f"Sessions with 'file content exceeds maximum' errors: {len(sorted_sessions)}")
+    # Build report
+    lines = []
+    lines.append("=" * 80)
+    lines.append("LARGE FILE ERROR ANALYSIS")
     total_errors = sum(s["error_count"] for s in sorted_sessions)
-    print(f"Total error occurrences: {total_errors}")
-    print("=" * 80)
-    print()
+    lines.append(f"Sessions with 'file content exceeds maximum' errors: {len(sorted_sessions)}")
+    lines.append(f"Total error occurrences: {total_errors}")
+    lines.append("=" * 80)
+    lines.append("")
 
     # Summary statistics
     all_files = []
@@ -317,92 +322,96 @@ def main():
             else:
                 recovery_types["other"] += 1
 
-    print("-" * 80)
-    print("FILE EXTENSIONS BREAKDOWN")
-    print("-" * 80)
+    lines.append("-" * 80)
+    lines.append("FILE EXTENSIONS BREAKDOWN")
+    lines.append("-" * 80)
     for ext, count in sorted(all_extensions.items(), key=lambda x: -x[1]):
-        print(f"  {ext or '(no ext)':<15} {count:>4} occurrences")
-    print()
+        lines.append(f"  {ext or '(no ext)':<15} {count:>4} occurrences")
+    lines.append("")
 
-    print("-" * 80)
-    print("RECOVERY BEHAVIOR SUMMARY")
-    print("-" * 80)
+    lines.append("-" * 80)
+    lines.append("RECOVERY BEHAVIOR SUMMARY")
+    lines.append("-" * 80)
     for rec_type, count in sorted(recovery_types.items(), key=lambda x: -x[1]):
-        print(f"  {rec_type:<35} {count:>4} times")
-    print()
+        lines.append(f"  {rec_type:<35} {count:>4} times")
+    lines.append("")
 
-    print("=" * 80)
-    print("PER-SESSION DETAILS")
-    print("=" * 80)
-    print()
+    lines.append("=" * 80)
+    lines.append("PER-SESSION DETAILS")
+    lines.append("=" * 80)
+    lines.append("")
 
     for sess in sorted_sessions:
-        print(f"Session: {sess['session_slug']}")
-        print(f"  Error count: {sess['error_count']}")
-        print(f"  JSONL files: {len(sess['jsonl_files'])}")
+        lines.append(f"Session: {sess['session_slug']}")
+        lines.append(f"  Error count: {sess['error_count']}")
+        lines.append(f"  JSONL files: {len(sess['jsonl_files'])}")
 
-        # Group errors by file
         file_counts = defaultdict(int)
         for err in sess["errors"]:
             file_counts[err["file_path"]] += 1
 
-        print(f"  Files attempted:")
+        lines.append(f"  Files attempted:")
         for fp, cnt in sorted(file_counts.items(), key=lambda x: -x[1]):
             basename = os.path.basename(fp) if fp != "(unknown)" else "(unknown)"
             ext = get_file_extension(fp)
-            print(f"    - {basename} ({ext}) x{cnt}")
+            lines.append(f"    - {basename} ({ext}) x{cnt}")
             if fp != "(unknown)":
-                print(f"      Full path: {fp}")
+                lines.append(f"      Full path: {fp}")
 
-        print(f"  Recovery actions:")
+        lines.append(f"  Recovery actions:")
         seen_recoveries = set()
         for err in sess["errors"]:
             rec = err["recovery"]
             if rec not in seen_recoveries:
                 seen_recoveries.add(rec)
-                print(f"    - {rec}")
+                lines.append(f"    - {rec}")
 
-        # Show error size info for first error
         for err in sess["errors"]:
             if err.get("error_info"):
                 info = err["error_info"]
-                print(f"  Size info: file was {info.get('file_size', '?')}, max allowed {info.get('max_allowed', '?')}")
+                lines.append(f"  Size info: file was {info.get('file_size', '?')}, max allowed {info.get('max_allowed', '?')}")
                 break
 
-        print()
+        lines.append("")
 
-    # Interesting patterns
-    print("=" * 80)
-    print("NOTABLE PATTERNS")
-    print("=" * 80)
-    print()
+    lines.append("=" * 80)
+    lines.append("NOTABLE PATTERNS")
+    lines.append("=" * 80)
+    lines.append("")
 
-    # Sessions with most errors
     if sorted_sessions:
         top = sorted_sessions[0]
-        print(f"- Most errors in single session: {top['session_slug']} ({top['error_count']} errors)")
+        lines.append(f"- Most errors in single session: {top['session_slug']} ({top['error_count']} errors)")
 
-    # Binary/image files
     binary_exts = {".heic", ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp",
                    ".mp4", ".mov", ".avi", ".pdf", ".zip", ".tar", ".gz", ".dmg",
                    ".exe", ".bin", ".so", ".dylib", ".woff", ".woff2", ".ttf", ".otf",
                    ".ico", ".svg"}
     binary_count = sum(1 for fp in all_files if get_file_extension(fp) in binary_exts)
     code_count = len(all_files) - binary_count - sum(1 for fp in all_files if get_file_extension(fp) == "(unknown)")
-    print(f"- Binary/media files attempted: {binary_count} ({binary_count*100//max(len(all_files),1)}%)")
-    print(f"- Code/text files too large: {code_count}")
-    print(f"- Unknown file paths: {sum(1 for fp in all_files if get_file_extension(fp) == '(unknown)')}")
+    lines.append(f"- Binary/media files attempted: {binary_count} ({binary_count*100//max(len(all_files),1)}%)")
+    lines.append(f"- Code/text files too large: {code_count}")
+    lines.append(f"- Unknown file paths: {sum(1 for fp in all_files if get_file_extension(fp) == '(unknown)')}")
 
-    # Most common problematic files
     file_freq = defaultdict(int)
     for fp in all_files:
         if fp != "(unknown)":
             file_freq[os.path.basename(fp)] += 1
     if file_freq:
-        print()
-        print("Most frequently problematic files (by basename):")
+        lines.append("")
+        lines.append("Most frequently problematic files (by basename):")
         for fname, cnt in sorted(file_freq.items(), key=lambda x: -x[1])[:10]:
-            print(f"  {fname}: {cnt} times")
+            lines.append(f"  {fname}: {cnt} times")
+
+    report = "\n".join(lines)
+    print(report[:3000])
+    if len(report) > 3000:
+        print(f"\n... [truncated in console]")
+
+    output_path = _output_path("large_file_errors")
+    with open(output_path, "w") as f:
+        f.write(report)
+    print(f"\nReport saved to: {output_path}")
 
 
 if __name__ == "__main__":

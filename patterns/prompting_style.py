@@ -14,8 +14,12 @@ from collections import Counter, defaultdict
 from datetime import datetime
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
-PROJECTS_DIR = os.path.expanduser("~/.claude/projects")
-OUTPUT_FILE = os.path.expanduser("~/transcript-analyzer/patterns/prompting_style.md")
+try:
+    from patterns.config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+except ImportError:
+    from config import CLAUDE_PROJECTS_DIR, output_path as _output_path
+PROJECTS_DIR = str(CLAUDE_PROJECTS_DIR)
+OUTPUT_FILE = str(_output_path("prompting_style"))
 
 # ── Stopwords (common English words to exclude from phrase analysis) ──────────
 STOPWORDS = {

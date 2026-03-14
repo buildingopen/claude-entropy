@@ -143,49 +143,25 @@ body::after {
 
 /* Gradient text utilities */
 .gradient-text {
-  background: linear-gradient(135deg, var(--green), var(--cyan), var(--purple));
+  background: linear-gradient(135deg, var(--green), #4ade80);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 .gradient-green {
-  background: linear-gradient(135deg, #22c55e, #4ade80, #06b6d4);
+  background: linear-gradient(135deg, #22c55e, #4ade80);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.gradient-purple {
-  background: linear-gradient(135deg, #a855f7, #c084fc, #818cf8);
+.gradient-purple, .gradient-blue, .gradient-cyan {
+  background: linear-gradient(135deg, #22c55e, #86efac);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.gradient-blue {
-  background: linear-gradient(135deg, #3b82f6, #60a5fa, #06b6d4);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.gradient-rose {
-  background: linear-gradient(135deg, #f43f5e, #fb7185, #f97316);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.gradient-amber {
-  background: linear-gradient(135deg, #f59e0b, #fbbf24, #f97316);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.gradient-cyan {
-  background: linear-gradient(135deg, #06b6d4, #22d3ee, #22c55e);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.gradient-orange {
-  background: linear-gradient(135deg, #f97316, #fb923c, #f59e0b);
+.gradient-rose, .gradient-amber, .gradient-orange {
+  background: linear-gradient(135deg, #f43f5e, #fb7185);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -300,7 +276,7 @@ body::after {
 .card-title::after {
   width: 600px; height: 600px;
   bottom: -20%; right: -20%;
-  background: rgba(168,85,247,0.1);
+  background: rgba(34,197,94,0.06);
 }
 .card-title .particles::after {
   content: '';
@@ -339,11 +315,11 @@ body::after {
   max-width: 100%;
   overflow-wrap: break-word;
   word-break: break-word;
-  background: linear-gradient(135deg, #22c55e 0%, #06b6d4 40%, #a855f7 70%, #f43f5e 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #86efac 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 60px rgba(34,197,94,0.3)) drop-shadow(0 0 120px rgba(168,85,247,0.2));
+  filter: drop-shadow(0 0 60px rgba(34,197,94,0.3)) drop-shadow(0 0 120px rgba(34,197,94,0.15));
   position: relative;
   animation: entropyGlitch 8s ease-in-out infinite;
 }
@@ -438,12 +414,12 @@ body::after {
 .card-hours::before {
   width: 1000px; height: 700px;
   top: 10%; left: -20%;
-  background: rgba(168,85,247,0.22);
+  background: rgba(34,197,94,0.18);
 }
 .card-hours::after {
   width: 500px; height: 500px;
   bottom: -10%; right: -15%;
-  background: rgba(168,85,247,0.12);
+  background: rgba(34,197,94,0.06);
 }
 .card-hours .hero-number {
   text-shadow: 0 0 80px rgba(168,85,247,0.6), 0 0 200px rgba(168,85,247,0.3);
@@ -470,12 +446,12 @@ body::after {
 .card-loc::before {
   width: 900px; height: 700px;
   top: 5%; right: -25%;
-  background: rgba(59,130,246,0.2);
+  background: rgba(34,197,94,0.14);
 }
 .card-loc::after {
   width: 500px; height: 500px;
   bottom: -15%; left: -10%;
-  background: rgba(59,130,246,0.08);
+  background: rgba(34,197,94,0.05);
 }
 .card-loc .hero-number {
   text-shadow: 0 0 80px rgba(59,130,246,0.6), 0 0 200px rgba(59,130,246,0.3);
@@ -529,7 +505,7 @@ body::after {
 .card-ships::before {
   width: 800px; height: 600px;
   bottom: -10%; left: 50%; transform: translateX(-50%);
-  background: rgba(249,115,22,0.18);
+  background: rgba(34,197,94,0.16);
 }
 .card-ships .hero-number-sm {
   text-shadow: 0 0 80px rgba(249,115,22,0.6), 0 0 160px rgba(249,115,22,0.2);
@@ -631,7 +607,7 @@ body::after {
 .card-style::before {
   width: 900px; height: 700px;
   top: 5%; right: -25%;
-  background: rgba(244,63,94,0.2);
+  background: rgba(244,63,94,0.12);
 }
 .card-style::after {
   width: 400px; height: 400px;
@@ -690,7 +666,7 @@ body::after {
 .card-tokens::before {
   width: 1000px; height: 800px;
   top: 0%; left: 50%; transform: translateX(-50%);
-  background: rgba(6,182,212,0.18);
+  background: rgba(34,197,94,0.16);
 }
 .card-tokens .hero-number {
   text-shadow: 0 0 80px rgba(6,182,212,0.5), 0 0 200px rgba(34,197,94,0.2);
@@ -803,7 +779,7 @@ body::after {
 .card-errors::before {
   width: 700px; height: 700px;
   top: 10%; left: 50%; transform: translateX(-50%);
-  background: rgba(168,85,247,0.08);
+  background: rgba(244,63,94,0.1);
 }
 
 .chart-wrap-donut {
@@ -898,12 +874,12 @@ body::after {
 .card-scoring::before {
   width: 900px; height: 700px;
   top: 5%; right: -20%;
-  background: rgba(245,158,11,0.2);
+  background: rgba(244,63,94,0.12);
 }
 .card-scoring::after {
   width: 400px; height: 400px;
   bottom: -10%; left: -10%;
-  background: rgba(245,158,11,0.08);
+  background: rgba(244,63,94,0.05);
 }
 .card-scoring .hero-number {
   text-shadow: 0 0 80px rgba(245,158,11,0.7), 0 0 200px rgba(245,158,11,0.3);
@@ -931,7 +907,7 @@ body::after {
 .card-misuse::before {
   width: 900px; height: 700px;
   top: 10%; left: -15%;
-  background: rgba(168,85,247,0.2);
+  background: rgba(244,63,94,0.1);
 }
 .card-misuse .hero-number {
   text-shadow: 0 0 80px rgba(168,85,247,0.7), 0 0 200px rgba(168,85,247,0.3);
@@ -993,7 +969,7 @@ body::after {
 .card-niceness::after {
   width: 400px; height: 400px;
   bottom: -10%; left: -10%;
-  background: rgba(6,182,212,0.08);
+  background: rgba(34,197,94,0.05);
 }
 .card-niceness .hero-number {
   text-shadow: 0 0 80px rgba(34,197,94,0.5), 0 0 200px rgba(34,197,94,0.2);
@@ -1241,7 +1217,7 @@ body::after {
 .card-share::after {
   width: 600px; height: 600px;
   bottom: -10%; right: -10%;
-  background: rgba(168,85,247,0.12);
+  background: rgba(34,197,94,0.06);
 }
 
 /* Ticket-style card */
@@ -1416,7 +1392,7 @@ body::after {
 .card-cta::after {
   width: 400px; height: 400px;
   bottom: 10%; right: -10%;
-  background: rgba(168,85,247,0.08);
+  background: rgba(34,197,94,0.05);
 }
 .cta-trail {
   font-family: 'Syne', sans-serif;
@@ -1588,6 +1564,7 @@ body::after {
   </div>
   <div class="fade-up title-claude">Claude Code</div>
   <div class="fade-up title-wrapped">Entropy</div>
+  <div class="fade-up" style="font-size:0.8rem; color:var(--text-secondary); letter-spacing:0.08em; margin-top:0.6rem;">YOUR AI CODING STATS, VISUALIZED</div>
   <div class="fade-up title-date-pill">__DATE_RANGE__</div>
   <div class="fade-up title-meta">__TITLE_META__</div>
   <div class="fade-up author-row" style="margin-top:2.5rem;">
@@ -2047,11 +2024,11 @@ body::after {
   </div>
   <div class="fade-up accent-divider"></div>
   <div class="fade-up" style="margin-top:2rem; text-align:center;">
-    <div class="cta-built">Built with</div>
-    <div class="cta-product">transcript-analyzer</div>
+    <div class="cta-built">Generate yours at</div>
+    <div class="cta-product">Claude Code Entropy</div>
   </div>
   <div class="fade-up" style="margin-top:1.5rem;">
-    <a class="cta-link" href="https://github.com/federicodeponte/transcript-analyzer" target="_blank">github.com/federicodeponte/transcript-analyzer</a>
+    <a class="cta-link" href="https://entropy.buildingopen.org" target="_blank">entropy.buildingopen.org</a>
   </div>
 </section>
 

@@ -206,11 +206,11 @@ body::after {
   top: 0;
   left: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--green), var(--cyan), var(--purple));
+  background: linear-gradient(90deg, var(--green), #4ade80, #86efac);
   z-index: 200;
   width: 0%;
   transition: width 0.1s linear;
-  box-shadow: 0 0 8px rgba(34,197,94,0.4), 0 0 20px rgba(6,182,212,0.2);
+  box-shadow: 0 0 8px rgba(34,197,94,0.4), 0 0 20px rgba(34,197,94,0.2);
 }
 
 /* Scroll hint */
@@ -326,9 +326,9 @@ body::after {
 @keyframes entropyGlitch {
   0%, 92%, 100% { transform: none; text-shadow: none; }
   93% { transform: translate(-2px, 1px) skewX(-0.5deg); filter: drop-shadow(0 0 60px rgba(34,197,94,0.3)) drop-shadow(2px 0 rgba(244,63,94,0.4)); }
-  94% { transform: translate(2px, -1px) skewX(0.5deg); filter: drop-shadow(0 0 60px rgba(34,197,94,0.3)) drop-shadow(-2px 0 rgba(6,182,212,0.4)); }
-  95% { transform: translate(-1px, 0) skewX(-0.3deg); filter: drop-shadow(0 0 60px rgba(34,197,94,0.3)) drop-shadow(1px 0 rgba(168,85,247,0.4)); }
-  96% { transform: none; filter: drop-shadow(0 0 60px rgba(34,197,94,0.3)) drop-shadow(0 0 120px rgba(168,85,247,0.2)); }
+  94% { transform: translate(2px, -1px) skewX(0.5deg); filter: drop-shadow(0 0 60px rgba(34,197,94,0.3)) drop-shadow(-2px 0 rgba(34,197,94,0.4)); }
+  95% { transform: translate(-1px, 0) skewX(-0.3deg); filter: drop-shadow(0 0 60px rgba(34,197,94,0.3)) drop-shadow(1px 0 rgba(34,197,94,0.4)); }
+  96% { transform: none; filter: drop-shadow(0 0 60px rgba(34,197,94,0.3)) drop-shadow(0 0 120px rgba(34,197,94,0.15)); }
 }
 .title-date-pill {
   display: inline-block;
@@ -422,7 +422,7 @@ body::after {
   background: rgba(34,197,94,0.06);
 }
 .card-hours .hero-number {
-  text-shadow: 0 0 80px rgba(168,85,247,0.6), 0 0 200px rgba(168,85,247,0.3);
+  text-shadow: 0 0 80px rgba(34,197,94,0.6), 0 0 200px rgba(34,197,94,0.3);
 }
 /* Watermark text behind the number */
 .watermark {
@@ -430,7 +430,7 @@ body::after {
   font-family: 'Syne', sans-serif;
   font-weight: 800;
   font-size: clamp(6rem, 25vw, 20rem);
-  color: rgba(168,85,247,0.04);
+  color: rgba(34,197,94,0.04);
   letter-spacing: -0.04em;
   pointer-events: none;
   white-space: nowrap;
@@ -441,7 +441,7 @@ body::after {
 /*  CARD: LOC                                                    */
 /* ============================================================ */
 .card-loc {
-  background: linear-gradient(160deg, #050510 0%, #050505 35%, #0a0e1e 100%);
+  background: linear-gradient(160deg, #050505 0%, #050505 35%, #030f07 100%);
 }
 .card-loc::before {
   width: 900px; height: 700px;
@@ -454,7 +454,7 @@ body::after {
   background: rgba(34,197,94,0.05);
 }
 .card-loc .hero-number {
-  text-shadow: 0 0 80px rgba(59,130,246,0.6), 0 0 200px rgba(59,130,246,0.3);
+  text-shadow: 0 0 80px rgba(34,197,94,0.6), 0 0 200px rgba(34,197,94,0.3);
 }
 
 /* Code rain decoration */
@@ -472,7 +472,7 @@ body::after {
   font-family: 'DM Sans', monospace;
   font-size: 0.65rem;
   line-height: 1.6;
-  color: var(--blue);
+  color: var(--green);
   white-space: nowrap;
   animation: codeScroll linear infinite;
   letter-spacing: 0.05em;
@@ -489,7 +489,7 @@ body::after {
   font-size: clamp(3rem, 10vw, 8rem);
   line-height: 1;
   opacity: 0.12;
-  color: var(--blue);
+  color: var(--green);
   position: absolute;
   z-index: 0 !important;
 }
@@ -500,7 +500,7 @@ body::after {
 /*  CARD: SHIPS                                                  */
 /* ============================================================ */
 .card-ships {
-  background: linear-gradient(170deg, #1a0e02 0%, #050505 40%, #1a0e02 100%);
+  background: linear-gradient(170deg, #030f07 0%, #050505 40%, #030f07 100%);
 }
 .card-ships::before {
   width: 800px; height: 600px;
@@ -508,7 +508,7 @@ body::after {
   background: rgba(34,197,94,0.16);
 }
 .card-ships .hero-number-sm {
-  text-shadow: 0 0 80px rgba(249,115,22,0.6), 0 0 160px rgba(249,115,22,0.2);
+  text-shadow: 0 0 80px rgba(34,197,94,0.6), 0 0 160px rgba(34,197,94,0.2);
 }
 
 .split-row {
@@ -521,8 +521,8 @@ body::after {
 .split-divider {
   width: 2px;
   height: 100px;
-  background: linear-gradient(to bottom, transparent, var(--orange), transparent);
-  box-shadow: 0 0 20px rgba(249,115,22,0.3);
+  background: linear-gradient(to bottom, transparent, var(--green), transparent);
+  box-shadow: 0 0 20px rgba(34,197,94,0.3);
   border-radius: 2px;
 }
 
@@ -661,7 +661,7 @@ body::after {
 /*  CARD: TOKENS                                                 */
 /* ============================================================ */
 .card-tokens {
-  background: linear-gradient(160deg, #050505 0%, #021a1e 40%, #050505 100%);
+  background: linear-gradient(160deg, #050505 0%, #030f07 40%, #050505 100%);
 }
 .card-tokens::before {
   width: 1000px; height: 800px;
@@ -669,15 +669,15 @@ body::after {
   background: rgba(34,197,94,0.16);
 }
 .card-tokens .hero-number {
-  text-shadow: 0 0 80px rgba(6,182,212,0.5), 0 0 200px rgba(34,197,94,0.2);
+  text-shadow: 0 0 80px rgba(34,197,94,0.5), 0 0 200px rgba(34,197,94,0.2);
 }
 
 .comparison-box {
   margin-top: 2.5rem;
   padding: 2rem 2.5rem;
   border-radius: 20px;
-  background: rgba(6,182,212,0.04);
-  border: 1px solid rgba(6,182,212,0.15);
+  background: rgba(34,197,94,0.04);
+  border: 1px solid rgba(34,197,94,0.15);
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -688,7 +688,7 @@ body::after {
   inset: -1px;
   border-radius: 20px;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(6,182,212,0.3), transparent 50%, rgba(34,197,94,0.3));
+  background: linear-gradient(135deg, rgba(34,197,94,0.3), transparent 50%, rgba(34,197,94,0.2));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -869,7 +869,7 @@ body::after {
 /*  CARD: SCORING                                                */
 /* ============================================================ */
 .card-scoring {
-  background: linear-gradient(170deg, #1a0e02 0%, #050505 40%, #1a0e02 100%);
+  background: linear-gradient(170deg, #1a0510 0%, #050505 40%, #1a0510 100%);
 }
 .card-scoring::before {
   width: 900px; height: 700px;
@@ -882,7 +882,7 @@ body::after {
   background: rgba(244,63,94,0.05);
 }
 .card-scoring .hero-number {
-  text-shadow: 0 0 80px rgba(245,158,11,0.7), 0 0 200px rgba(245,158,11,0.3);
+  text-shadow: 0 0 80px rgba(244,63,94,0.7), 0 0 200px rgba(244,63,94,0.3);
 }
 
 /* Star rating row */
@@ -902,7 +902,7 @@ body::after {
 /*  CARD: MISUSE                                                 */
 /* ============================================================ */
 .card-misuse {
-  background: linear-gradient(160deg, #050505 0%, #150a22 35%, #050505 100%);
+  background: linear-gradient(160deg, #050505 0%, #1a0510 35%, #050505 100%);
 }
 .card-misuse::before {
   width: 900px; height: 700px;
@@ -910,7 +910,7 @@ body::after {
   background: rgba(244,63,94,0.1);
 }
 .card-misuse .hero-number {
-  text-shadow: 0 0 80px rgba(168,85,247,0.7), 0 0 200px rgba(168,85,247,0.3);
+  text-shadow: 0 0 80px rgba(244,63,94,0.7), 0 0 200px rgba(244,63,94,0.3);
 }
 
 /* Tool pills - terminal aesthetic */
@@ -931,29 +931,29 @@ body::after {
   font-size: clamp(0.8rem, 2vw, 0.9rem);
   font-weight: 500;
   color: var(--text-secondary);
-  background: rgba(168,85,247,0.03);
-  border: 1px solid rgba(168,85,247,0.08);
+  background: rgba(244,63,94,0.03);
+  border: 1px solid rgba(244,63,94,0.08);
   transition: border-color 0.3s, background 0.3s;
   width: min(85vw, 340px);
   justify-content: space-between;
 }
 .tool-pill:hover {
-  border-color: rgba(168,85,247,0.25);
-  background: rgba(168,85,247,0.06);
+  border-color: rgba(244,63,94,0.25);
+  background: rgba(244,63,94,0.06);
 }
 .tool-pill:first-child {
-  background: rgba(168,85,247,0.08);
-  border-color: rgba(168,85,247,0.25);
+  background: rgba(244,63,94,0.08);
+  border-color: rgba(244,63,94,0.25);
   color: var(--text);
-  box-shadow: 0 0 20px rgba(168,85,247,0.1);
+  box-shadow: 0 0 20px rgba(244,63,94,0.1);
 }
 .tool-pill .tool-count {
   font-family: 'Syne', sans-serif;
   font-weight: 700;
-  color: var(--purple);
+  color: var(--rose);
   font-size: 0.95rem;
 }
-.tool-pill:first-child .tool-count { color: #c084fc; font-size: 1rem; }
+.tool-pill:first-child .tool-count { color: #fb7185; font-size: 1rem; }
 
 /* ============================================================ */
 /*  CARD: NICENESS                                               */
@@ -1064,17 +1064,17 @@ body::after {
 /*  CARD: TONE CLOCK (TIME OF DAY)                               */
 /* ============================================================ */
 .card-tone-clock {
-  background: linear-gradient(160deg, #050505 0%, #0a0f1a 35%, #050505 100%);
+  background: linear-gradient(160deg, #050505 0%, #030f07 35%, #050505 100%);
 }
 .card-tone-clock::before {
   width: 800px; height: 700px;
   top: 5%; left: -15%;
-  background: rgba(168,85,247,0.12);
+  background: rgba(34,197,94,0.12);
 }
 .card-tone-clock::after {
   width: 400px; height: 400px;
   bottom: -10%; right: -10%;
-  background: rgba(244,63,94,0.08);
+  background: rgba(34,197,94,0.06);
 }
 .tone-chart-wrap {
   width: min(92%, 380px);
@@ -1207,7 +1207,7 @@ body::after {
 /*  CARD: SHARE                                                  */
 /* ============================================================ */
 .card-share {
-  background: linear-gradient(160deg, #030f07 0%, #0d2818 30%, #050505 50%, #15082a 75%, #050505 100%);
+  background: linear-gradient(160deg, #030f07 0%, #0d2818 30%, #050505 50%, #030f07 75%, #050505 100%);
 }
 .card-share::before {
   width: 900px; height: 900px;
@@ -1238,7 +1238,7 @@ body::after {
   inset: -1px;
   border-radius: 24px;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(34,197,94,0.4), rgba(6,182,212,0.2), rgba(168,85,247,0.4));
+  background: linear-gradient(135deg, rgba(34,197,94,0.4), rgba(34,197,94,0.15), rgba(34,197,94,0.4));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -1446,8 +1446,8 @@ body::after {
   .split-row { flex-direction: column; gap: 1.5rem; }
   .split-divider {
     width: 80px; height: 2px;
-    background: linear-gradient(to right, transparent, var(--orange), transparent);
-    box-shadow: 0 0 20px rgba(249,115,22,0.3);
+    background: linear-gradient(to right, transparent, var(--green), transparent);
+    box-shadow: 0 0 20px rgba(34,197,94,0.3);
   }
   .money-sub { flex-direction: column; gap: 0.75rem; }
   .donut-legend { grid-template-columns: 1fr; }
@@ -1605,9 +1605,9 @@ body::after {
   <div class="card-badge-wrap">__PERCENTILE_BADGE_hours__</div>
   <div class="watermark">__HOURS_WATERMARK__</div>
   <div class="fade-up label-top">That's</div>
-  <div class="fade-up hero-number gradient-purple" data-count="__HOURS_COUNT__" data-format="int">0</div>
+  <div class="fade-up hero-number gradient-green" data-count="__HOURS_COUNT__" data-format="int">0</div>
   <div class="fade-up label-bottom">hours of AI pair programming</div>
-  <div class="fade-up label-accent" style="color:var(--purple);">__HOURS_ACCENT__</div>
+  <div class="fade-up label-accent" style="color:var(--green);">__HOURS_ACCENT__</div>
   <div class="fade-up label-detail">__HOURS_DETAIL__</div>
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -1623,11 +1623,11 @@ body::after {
   <div class="code-bracket left">&lt;/&gt;</div>
   <div class="code-bracket right">{ }</div>
   <div class="fade-up label-top">Together, you changed</div>
-  <div class="fade-up hero-number gradient-blue" data-count="__LOC_COUNT__" data-format="int">0</div>
+  <div class="fade-up hero-number gradient-green" data-count="__LOC_COUNT__" data-format="int">0</div>
   <div class="fade-up label-bottom">lines of code</div>
-  <div class="fade-up accent-line" style="background:linear-gradient(90deg,transparent,var(--blue),transparent);"></div>
+  <div class="fade-up accent-line" style="background:linear-gradient(90deg,transparent,var(--green),transparent);"></div>
   <div class="fade-up label-detail">__LOC_DETAIL__</div>
-  <div class="fade-up" style="font-size:0.72rem; color:var(--blue); font-weight:500; margin-top:0.4rem;">__LOC_TAGLINE__</div>
+  <div class="fade-up" style="font-size:0.72rem; color:var(--green); font-weight:500; margin-top:0.4rem;">__LOC_TAGLINE__</div>
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
   </div>
@@ -1641,16 +1641,16 @@ body::after {
   <div class="fade-up label-top">You shipped</div>
   <div class="split-row fade-up">
     <div class="split-item">
-      <div class="hero-number-sm gradient-orange" data-count="__COMMITS_COUNT__" data-format="int">0</div>
+      <div class="hero-number-sm gradient-green" data-count="__COMMITS_COUNT__" data-format="int">0</div>
       <div class="label-bottom">commits</div>
     </div>
     <div class="split-divider"></div>
     <div class="split-item">
-      <div class="hero-number-sm gradient-orange" data-count="__DEPLOYS_COUNT__" data-format="int">0</div>
+      <div class="hero-number-sm gradient-green" data-count="__DEPLOYS_COUNT__" data-format="int">0</div>
       <div class="label-bottom">deployments</div>
     </div>
   </div>
-  <div class="fade-up accent-line" style="background:linear-gradient(90deg,transparent,var(--orange),transparent); margin-top:2rem;"></div>
+  <div class="fade-up accent-line" style="background:linear-gradient(90deg,transparent,var(--green),transparent); margin-top:2rem;"></div>
   <div class="fade-up label-detail">__SHIPS_DETAIL__</div>
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -1715,14 +1715,14 @@ body::after {
 <section class="card card-tokens" id="card-7">
   <div class="card-badge-wrap">__PERCENTILE_BADGE_tokens__</div>
   <div class="fade-up label-top">You processed</div>
-  <div class="fade-up hero-number gradient-cyan" data-count="__TOKENS_COUNT__" data-format="float" data-suffix="__TOKENS_SUFFIX__">0</div>
+  <div class="fade-up hero-number gradient-green" data-count="__TOKENS_COUNT__" data-format="float" data-suffix="__TOKENS_SUFFIX__">0</div>
   <div class="fade-up label-bottom">tokens</div>
   <div class="fade-up comparison-box">
-    <div class="comparison-big" style="color:var(--cyan);">__TOKENS_COMPARISON__</div>
+    <div class="comparison-big" style="color:var(--green);">__TOKENS_COMPARISON__</div>
     <div class="comparison-vs">__TOKENS_COMPARISON_SUB__</div>
   </div>
   <div class="fade-up label-detail">__TOKENS_MESSAGES__ messages exchanged</div>
-  <div class="fade-up label-detail" style="margin-top:0.3rem; color:var(--cyan); font-weight:500;">__TOKENS_VS_AVERAGE__</div>
+  <div class="fade-up label-detail" style="margin-top:0.3rem; color:var(--green); font-weight:500;">__TOKENS_VS_AVERAGE__</div>
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
   </div>
@@ -1798,14 +1798,14 @@ body::after {
 <!-- ============================================================ -->
 <section class="card card-scoring" id="card-11">
   <div class="fade-up label-top">The delusion score</div>
-  <div class="fade-up hero-number gradient-amber" data-count="__SCORING_PCT_PERFECT__" data-format="pct">0%</div>
+  <div class="fade-up hero-number gradient-rose" data-count="__SCORING_PCT_PERFECT__" data-format="pct">0%</div>
   <div class="fade-up label-bottom">of self-ratings were 10/10</div>
   <div class="fade-up star-row">
     __SCORING_STARS__
   </div>
   <div class="fade-up" style="display:flex; gap:2rem; margin-top:1.25rem; justify-content:center;">
     <div style="text-align:center;">
-      <div style="font-family:'Syne',sans-serif; font-weight:800; font-size:1.3rem; color:var(--amber);">__SCORING_AI_MEDIAN__/10</div>
+      <div style="font-family:'Syne',sans-serif; font-weight:800; font-size:1.3rem; color:var(--rose);">__SCORING_AI_MEDIAN__/10</div>
       <div style="font-size:0.65rem; color:var(--text-muted);">AI thinks (median)</div>
     </div>
     <div style="text-align:center;">
@@ -1813,7 +1813,7 @@ body::after {
       <div style="font-size:0.65rem; color:var(--text-muted);">full success rate</div>
     </div>
   </div>
-  <div class="fade-up label-accent" style="color:var(--amber);">__SCORING_BUGS_AFTER__ had bugs found right after</div>
+  <div class="fade-up label-accent" style="color:var(--rose);">__SCORING_BUGS_AFTER__ had bugs found right after</div>
   <div class="fade-up tagline" style="color:var(--text-secondary);">__SCORING_TAGLINE__</div>
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -1825,7 +1825,7 @@ body::after {
 <!-- ============================================================ -->
 <section class="card card-misuse" id="card-12">
   <div class="fade-up label-top">Wrong tool, same mistake</div>
-  <div class="fade-up hero-number gradient-purple" data-count="__MISUSE_COUNT__" data-format="int">0</div>
+  <div class="fade-up hero-number gradient-rose" data-count="__MISUSE_COUNT__" data-format="int">0</div>
   <div class="fade-up label-bottom">wrong tool usages detected</div>
   <div class="fade-up tool-pills">
     __MISUSE_PILLS__
@@ -1852,7 +1852,7 @@ body::after {
   </div>
   <div class="fade-up label-bottom" style="margin-top:1.25rem;">sessions ended in success</div>
   <div class="fade-up label-detail">__SUCCESS_DETAIL__</div>
-  <div class="fade-up label-detail" style="margin-top:0.3rem; color:var(--cyan);">__SUCCESS_PROMPT_LINK__</div>
+  <div class="fade-up label-detail" style="margin-top:0.3rem; color:var(--green);">__SUCCESS_PROMPT_LINK__</div>
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
   </div>
@@ -1879,15 +1879,15 @@ body::after {
       nice words
     </div>
     <div class="tone-stat">
-      <span class="tone-stat-val" style="color:var(--cyan);">__NICE_PLEASE_COUNT__</span>
+      <span class="tone-stat-val" style="color:var(--green);">__NICE_PLEASE_COUNT__</span>
       "please"s
     </div>
     <div class="tone-stat">
-      <span class="tone-stat-val" style="color:var(--amber);">__NICE_TO_HARSH__</span>
+      <span class="tone-stat-val" style="color:var(--rose);">__NICE_TO_HARSH__</span>
       nice-to-harsh
     </div>
   </div>
-  <div class="fade-up label-accent" style="color:var(--purple); margin-top:1.25rem;">__NICE_CLAUDE_RATIO__</div>
+  <div class="fade-up label-accent" style="color:var(--green); margin-top:1.25rem;">__NICE_CLAUDE_RATIO__</div>
   <div class="fade-up label-detail">__NICE_CLAUDE_DETAIL__</div>
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -1914,7 +1914,7 @@ body::after {
       <div class="tone-peak-label">__TONE_PEAK_NICE_DETAIL__</div>
     </div>
   </div>
-  <div class="fade-up label-accent" style="color:var(--purple); margin-top:1rem;">__TONE_TAGLINE__</div>
+  <div class="fade-up label-accent" style="color:var(--green); margin-top:1rem;">__TONE_TAGLINE__</div>
   <div class="fade-up label-detail">__TONE_QUOTE__</div>
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>

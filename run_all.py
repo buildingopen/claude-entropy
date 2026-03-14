@@ -23,6 +23,7 @@ PATTERN_SCRIPTS = [
     ("self_scoring", "Self-scoring patterns"),
     ("session_outcomes", "Session outcome classification"),
     ("tool_misuse", "Tool misuse patterns"),
+    ("communication_tone", "Communication tone and niceness"),
 ]
 
 
@@ -102,11 +103,21 @@ if __name__ == "__main__":
                         help="Only run pattern scripts (no Gemini)")
     parser.add_argument("--gemini-only", action="store_true",
                         help="Only run Gemini analysis")
+    parser.add_argument("--wrapped", action="store_true",
+                        help="Generate wrapped.html after patterns")
     parser.add_argument("--pattern", type=str,
                         help="Run a specific pattern (e.g., 'self_scoring')")
     parser.add_argument("--mode", choices=["deep", "batch", "local"],
                         default="batch", help="Gemini analysis mode")
     args = parser.parse_args()
+
+    if args.wrapped:
+        print("\nGenerating wrapped.html...")
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT_DIR / "generate_wrapped.py")],
+            timeout=600, cwd=str(SCRIPT_DIR),
+        )
+        sys.exit(result.returncode)
 
     if args.pattern:
         # Run single pattern

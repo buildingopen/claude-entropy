@@ -30,9 +30,24 @@ PROJECT_NAME_MAP = {
     "transcript-analyzer": "Transcript Analyzer",
     "ussd-ai-railway": "USSD AI",
     "linkedin-posts": "LinkedIn Posts",
+    "linkedin-engine": "LinkedIn Engine",
     "claude-config-sync": "Claude Config Sync",
     "ax41-setup": "AX41 Setup",
     "signalaudit-repo": "SignalAudit",
+    "fede-vault": "Context Vault",
+    "execution-layer": "Execution Layer",
+    "openpaper-video-engine": "OpenPaper Video",
+    "openqueen": "OpenQueen",
+    "queen": "OpenQueen",
+    "openqueen-wa-listener": "OpenQueen WA",
+    "runit": "RunIt",
+    "root": "AX41 General",
+}
+
+# Encoded directory names that map to friendly names (for paths like -root, -)
+_ENCODED_DIR_MAP = {
+    "-root": "AX41 General",
+    "-": "Mac General",
 }
 
 # Known path prefixes to strip when decoding encoded directory names
@@ -71,6 +86,10 @@ def resolve_project_name(cwd_or_path):
             if basename.startswith(key):
                 return name
         return basename
+
+    # Exact match on encoded dir name (e.g. "-root", "-")
+    if s in _ENCODED_DIR_MAP:
+        return _ENCODED_DIR_MAP[s]
 
     # Encoded dir name: strip known prefixes, then match
     remainder = s

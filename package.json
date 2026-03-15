@@ -1,0 +1,24 @@
+{
+  "name": "claude-entropy",
+  "version": "1.0.0",
+  "description": "Spotify Wrapped for Claude Code - visualize your AI coding stats",
+  "bin": {
+    "claude-entropy": "./bin/claude-entropy.js"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "wrapped",
+    "stats",
+    "analytics",
+    "entropy"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/buildingopen/claude-entropy.git"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

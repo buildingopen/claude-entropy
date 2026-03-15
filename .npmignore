@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.md
+dist/
+reports/
+screenshots/
+tests/
+*.tgz
+.gitignore
+.git/
+requirements.txt
+analyze.py
+run_all.py
+generate_findings.py
+FINDINGS.md

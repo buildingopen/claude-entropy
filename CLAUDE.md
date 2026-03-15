@@ -60,8 +60,43 @@ python3 -m pytest tests/ -v
 - `WRAPPED_TZ_OFFSET` - Hours from UTC for local time display (default: 0)
 - `WRAPPED_MONEY_PAID` - Total subscription cost in USD for ROI comparison (optional)
 - `WRAPPED_MONEY_DETAIL` - Description of subscription (e.g. "3 Claude Max accounts")
+- `WRAPPED_SANITIZE` - Set to `1` to anonymize project names, clear swear quotes and prompt examples (for public sharing)
 - `WRAPPED_SHARE_URL` - Public URL for share buttons (auto-set with `--publish`)
 - `WRAPPED_SUPABASE_KEY` - Supabase service_role key for publishing (project: cbhbfutssknfjvgvavnt)
+
+### Quick start (for other Claude Code users)
+```bash
+# One-liner (requires python3 on PATH)
+npx claude-entropy
+
+# With options
+npx claude-entropy --author "Your Name" --tz 1
+
+# With cost tracking
+npx claude-entropy --money 600 --money-detail "3 Claude Max accounts"
+
+# Sanitized for sharing
+npx claude-entropy --sanitize
+
+# Publish to web
+WRAPPED_SUPABASE_KEY="..." npx claude-entropy --publish
+```
+
+### CLI options
+- `--author NAME` - Display name (default: git user.name)
+- `--tz HOURS` - UTC offset for local time (default: auto-detect)
+- `--money USD` - Total subscription cost for ROI slide
+- `--money-detail DESC` - Subscription description
+- `--sanitize` - Anonymize project names for sharing
+- `--publish` - Publish to buildingopen.org/wrapped/
+
+### Direct Python usage
+```bash
+git clone https://github.com/buildingopen/claude-entropy.git
+cd claude-entropy
+WRAPPED_AUTHOR="Your Name" python3 generate_wrapped.py
+open dist/wrapped.html
+```
 
 ## Adding New Projects
 

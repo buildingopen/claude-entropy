@@ -1194,6 +1194,69 @@ def generate_html(d, rules, archetype=None, percentiles=None):
     cost_vs_line = _vs_line(cost_vs, "API spend")
     sessions_vs_line = _vs_line(sessions_vs, "monthly sessions")
 
+    # ── Fun real-world comparisons ──
+    # Sessions: compare to something relatable
+    sess = d.get("sessions", 0)
+    if sess >= 500:
+        sessions_comparison = f"That's more sessions than a therapist sees in a year"
+    elif sess >= 300:
+        every_h = max(1, round(days * 24 / sess))
+        sessions_comparison = f"A new session every {'hour' if every_h == 1 else f'{every_h} hours'}, day and night"
+    elif sess >= 100:
+        sessions_comparison = f"{round(sess / max(1, days))} sessions per day, every day"
+    elif sess >= 30:
+        sessions_comparison = f"About {round(sess / max(1, days / 7))} sessions per week"
+    else:
+        sessions_comparison = ""
+
+    # Hours: compare to real-world durations
+    hrs = d.get("hours", 0)
+    if hrs >= 8760:
+        sessions_comparison_hours = f"More than a full year of non-stop coding"
+    elif hrs >= 4000:
+        sessions_comparison_hours = f"That's {round(hrs / 2000)} years of full-time work"
+    elif hrs >= 2000:
+        sessions_comparison_hours = f"A full year at a desk job, compressed into {days} days"
+    elif hrs >= 500:
+        flights = round(hrs / 11)
+        sessions_comparison_hours = f"Like {flights} flights from NYC to London, back to back"
+    elif hrs >= 100:
+        movies = round(hrs / 2.5)
+        sessions_comparison_hours = f"You could have watched {movies} movies instead"
+    else:
+        sessions_comparison_hours = ""
+
+    # LOC: compare to famous codebases/projects
+    loc = d.get("loc", 0)
+    if loc >= 1_000_000:
+        sessions_comparison_loc = f"More code than the original Windows NT kernel"
+    elif loc >= 500_000:
+        sessions_comparison_loc = f"More than the entire source of Photoshop 1.0"
+    elif loc >= 200_000:
+        sessions_comparison_loc = f"That's roughly the size of the original Doom engine"
+    elif loc >= 100_000:
+        sessions_comparison_loc = f"Enough to write the Linux 0.01 kernel, twice"
+    elif loc >= 50_000:
+        sessions_comparison_loc = f"More lines than the Apollo 11 guidance computer"
+    elif loc >= 10_000:
+        sessions_comparison_loc = f"About the size of a full-featured iOS app"
+    else:
+        sessions_comparison_loc = ""
+
+    # Ships: compare to real software teams
+    commits = d.get("commits", 0)
+    deploys = d.get("deployments", 0)
+    if deploys >= 1000:
+        sessions_comparison_ships = f"More deploys than most startups do in their entire lifetime"
+    elif deploys >= 100:
+        sessions_comparison_ships = f"A deploy every {max(1, round(days * 24 / deploys))} hours on average"
+    elif commits >= 500:
+        sessions_comparison_ships = f"More commits than the average open-source project gets in a year"
+    elif commits >= 100:
+        sessions_comparison_ships = f"Averaging {round(commits / max(1, days))} commits per day"
+    else:
+        sessions_comparison_ships = ""
+
     # Time saved estimate (AI generates code ~10x faster, 80% of time is coding)
     hours_saved = round(d["hours"] * 0.8)
     if hours_saved > 0:
@@ -1259,23 +1322,27 @@ def generate_html(d, rules, archetype=None, percentiles=None):
         "__SESSIONS_CATEGORY_LINE__": sessions_category_line,
         "__SESSIONS_TAGLINE__": sessions_tagline,
         "__SESSIONS_VS_AVERAGE__": sessions_vs_line,
+        "__SESSIONS_COMPARISON__": sessions_comparison,
 
         # Hours
         "__HOURS_COUNT__": str(d["hours"]),
         "__HOURS_WATERMARK__": f'{d["hours_days"]} DAYS',
         "__HOURS_ACCENT__": f'{d["hours_days"]} days. Non-stop.',
         "__HOURS_DETAIL__": hours_detail,
+        "__HOURS_COMPARISON__": sessions_comparison_hours,
 
         # LOC
         "__LOC_COUNT__": str(d["loc"]),
         "__LOC_DETAIL__": loc_split,
         "__LOC_TAGLINE__": loc_tagline,
+        "__LOC_COMPARISON__": sessions_comparison_loc,
 
         # Ships
         "__COMMITS_COUNT__": str(d["commits"]),
         "__DEPLOYS_COUNT__": str(d["deployments"]),
         "__BASH_COMMANDS__": fmt_number(d["bash_commands"]),
         "__SHIPS_DETAIL__": ships_detail,
+        "__SHIPS_COMPARISON__": sessions_comparison_ships,
 
         # Projects
         "__PROJECTS_BARS__": projects_html,

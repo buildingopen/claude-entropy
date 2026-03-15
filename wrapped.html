@@ -8,11 +8,13 @@
 <meta property="og:title" content="Claude Code Entropy">
 <meta property="og:description" content="__META_SESSIONS__ coding sessions. __META_COST__ in API costs. __META_HOURS__ hours of AI pair programming.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://entropy.buildingopen.org/og.png">
+<meta property="og:image" content="https://entropy.buildingopen.org/api/og/__SHARE_HASH__">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Claude Code Entropy">
 <meta name="twitter:description" content="__META_SESSIONS__ sessions. __META_HOURS__ hours of AI coding. __META_COST__ in API costs.">
-<meta name="twitter:image" content="https://entropy.buildingopen.org/og.png">
+<meta name="twitter:image" content="https://entropy.buildingopen.org/api/og/__SHARE_HASH__">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1300,6 +1302,12 @@ body::after {
   color: var(--text-secondary);
   margin-top: 0.4rem;
 }
+.percentile-disclaimer {
+  font-size: 0.55rem;
+  opacity: 0.4;
+  letter-spacing: 0.03em;
+  margin-top: 0.2rem;
+}
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2389,12 +2397,21 @@ body::after {
       ].join('\n');
       document.head.appendChild(exportStyle);
 
+      // Force Twitter-optimal 1200x675 landscape ratio
+      var origW = ticket.style.width;
+      var origH = ticket.style.height;
+      ticket.style.width = '600px';
+      ticket.style.height = '337px';
       html2canvas(ticket, {
         backgroundColor: '#0a0a0a',
         scale: 2,
+        width: 600,
+        height: 337,
         useCORS: true,
         logging: false,
       }).then(function(canvas) {
+        ticket.style.width = origW;
+        ticket.style.height = origH;
         var el = document.getElementById('export-overrides');
         if (el) el.remove();
         var link = document.createElement('a');
@@ -2406,6 +2423,8 @@ body::after {
           saveBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save card';
         }, 2000);
       }).catch(function() {
+        ticket.style.width = origW;
+        ticket.style.height = origH;
         var el = document.getElementById('export-overrides');
         if (el) el.remove();
         saveBtn.textContent = 'Save card';

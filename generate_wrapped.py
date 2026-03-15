@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 SCRIPT_DIR = Path(__file__).parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from patterns.config import CLAUDE_PROJECTS_DIR, resolve_project_name
+from patterns.config import CLAUDE_PROJECTS_DIR, CLAUDE_PROJECTS_DIRS, resolve_project_name
 from patterns.session_outcomes import analyze_session as analyze_outcome
 from patterns.communication_tone import analyze_session as analyze_tone
 from patterns.tool_misuse import analyze_session as analyze_misuse
@@ -57,11 +57,11 @@ from patterns.prompting_style import extract_user_text
 BENCHMARKS = {
     "sessions_monthly": [(25, 8), (50, 20), (75, 50), (90, 100), (95, 200), (99, 400)],
     "hours_monthly": [(25, 20), (50, 80), (75, 250), (90, 600), (95, 1500), (99, 5000)],
-    "loc": [(25, 500), (50, 3000), (75, 15000), (90, 50000), (95, 100000), (99, 300000)],
-    "tokens": [(25, 5e6), (50, 50e6), (75, 500e6), (90, 2e9), (95, 5e9), (99, 15e9)],
-    "cost": [(25, 10), (50, 100), (75, 500), (90, 2000), (95, 8000), (99, 30000)],
+    "loc_monthly": [(25, 150), (50, 1000), (75, 5000), (90, 15000), (95, 35000), (99, 100000)],
+    "tokens_monthly": [(25, 2e6), (50, 15e6), (75, 150e6), (90, 600e6), (95, 1.5e9), (99, 5e9)],
+    "cost_monthly": [(25, 5), (50, 30), (75, 150), (90, 600), (95, 2500), (99, 10000)],
     "success_pct": [(25, 30), (50, 50), (75, 65), (90, 75), (95, 85), (99, 95)],
-    "deployments": [(25, 5), (50, 30), (75, 100), (90, 500), (95, 2000), (99, 5000)],
+    "deployments_monthly": [(25, 2), (50, 10), (75, 30), (90, 150), (95, 600), (99, 1500)],
 }
 
 
@@ -86,18 +86,22 @@ def compute_percentiles(d):
     days = max(1, d.get("days", 1))
     months = days / 30.0
 
-    # Normalize time-dependent metrics to per-month rates
+    # Normalize all time-dependent metrics to per-month rates
     sessions_monthly = d.get("sessions", 0) / months
     hours_monthly = d.get("hours", 0) / months
+    loc_monthly = d.get("loc", 0) / months
+    tokens_monthly = d.get("total_tokens", 0) / months
+    cost_monthly = d.get("total_cost", 0) / months
+    deployments_monthly = d.get("deployments", 0) / months
 
     pcts = {
         "sessions": compute_percentile(sessions_monthly, "sessions_monthly"),
         "hours": compute_percentile(hours_monthly, "hours_monthly"),
-        "loc": compute_percentile(d.get("loc", 0), "loc"),
-        "tokens": compute_percentile(d.get("total_tokens", 0), "tokens"),
-        "cost": compute_percentile(d.get("total_cost", 0), "cost"),
+        "loc": compute_percentile(loc_monthly, "loc_monthly"),
+        "tokens": compute_percentile(tokens_monthly, "tokens_monthly"),
+        "cost": compute_percentile(cost_monthly, "cost_monthly"),
         "success": compute_percentile(d.get("success_pct", 0), "success_pct"),
-        "deployments": compute_percentile(d.get("deployments", 0), "deployments"),
+        "deployments": compute_percentile(deployments_monthly, "deployments_monthly"),
     }
 
     # Overall = weighted average
@@ -126,17 +130,25 @@ SHARE_URL = os.environ.get("WRAPPED_SHARE_URL", "")  # public URL for share butt
 
 
 def find_all_sessions():
-    """Find all JSONL session files, no cap."""
+    """Find all JSONL session files across all configured directories, no cap."""
+    seen = set()
     sessions = []
-    for jsonl in CLAUDE_PROJECTS_DIR.rglob("*.jsonl"):
-        if "subagent" in str(jsonl):
+    for projects_dir in CLAUDE_PROJECTS_DIRS:
+        if not projects_dir.exists():
             continue
-        try:
-            stat = jsonl.stat()
-            if stat.st_size >= 10 * 1024:  # 10KB min
-                sessions.append(jsonl)
-        except OSError:
-            continue
+        for jsonl in projects_dir.rglob("*.jsonl"):
+            if "subagent" in str(jsonl):
+                continue
+            try:
+                resolved = jsonl.resolve()
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                stat = jsonl.stat()
+                if stat.st_size >= 10 * 1024:  # 10KB min
+                    sessions.append(jsonl)
+            except OSError:
+                continue
     return sorted(sessions)
 
 
@@ -1120,22 +1132,26 @@ def generate_html(d, rules, archetype=None, percentiles=None):
     badge_html = {}
     for key, pval in badge_map.items():
         if pval >= 75:
-            badge_html[key] = f'<span class="percentile-badge">Top {100 - pval}%</span>'
+            badge_html[key] = f'<span class="percentile-badge" title="Estimated from community benchmarks">Top {100 - pval}%*</span>'
         else:
             badge_html[key] = ""
 
     overall_pct = pcts.get("overall", 0)
     if overall_pct >= 50:
-        overall_line = f'<div class="share-overall-pct"><span class="gradient-text">Top {100 - overall_pct}%</span> of Claude Code users</div>'
+        overall_line = (
+            f'<div class="share-overall-pct"><span class="gradient-text">Top {100 - overall_pct}%</span> of Claude Code users</div>'
+            f'<div class="percentile-disclaimer">Estimated from community benchmarks</div>'
+        )
     else:
         overall_line = ""
 
     # ── Share text ──
     pct_text = f" (top {100 - overall_pct}%)" if overall_pct >= 50 else ""
     share_text = (
-        f"{arch_share}{pct_text}. My Claude Code Entropy: {fmt_number(d['sessions'])} sessions, "
-        f"{fmt_number(d['hours'])} hours, {fmt_compact(d['loc'])} LOC. "
-        f"{d['success_pct']}% success rate. #ClaudeCodeEntropy"
+        f"I've coded more with AI than {100 - overall_pct}% of developers.\\n\\n"
+        f"{arch_share}{pct_text}. {fmt_number(d['sessions'])} sessions, "
+        f"{fmt_number(d['hours'])} hours, {fmt_compact(d['loc'])} LOC.\\n\\n"
+        f"#ClaudeEntropy #ClaudeCode"
     )
 
     # ── Hours detail ──
@@ -1177,13 +1193,15 @@ def generate_html(d, rules, archetype=None, percentiles=None):
     else:
         money_savings = ""
 
-    # Comparison multipliers vs median (p50) user
+    # Comparison multipliers vs median (p50) user - normalized to monthly rates
     days = max(1, d.get("days", 1))
     months = days / 30.0
     sessions_monthly = d.get("sessions", 0) / months
-    tokens_vs = d.get("total_tokens", 0) / BENCHMARKS["tokens"][1][1]  # p50 = 50M
-    cost_vs = d.get("total_cost", 0) / max(1, BENCHMARKS["cost"][1][1])  # p50 = $100
-    sessions_vs = sessions_monthly / max(1, BENCHMARKS["sessions_monthly"][1][1])  # p50 = 20/mo
+    tokens_monthly = d.get("total_tokens", 0) / months
+    cost_monthly = d.get("total_cost", 0) / months
+    tokens_vs = tokens_monthly / BENCHMARKS["tokens_monthly"][1][1]  # p50
+    cost_vs = cost_monthly / max(1, BENCHMARKS["cost_monthly"][1][1])  # p50
+    sessions_vs = sessions_monthly / max(1, BENCHMARKS["sessions_monthly"][1][1])  # p50
 
     def _vs_line(mult, metric_label):
         if mult >= 2:
@@ -1463,44 +1481,81 @@ def generate_html(d, rules, archetype=None, percentiles=None):
     return html
 
 
-def publish_to_supabase(html, author_name, hash_val):
+def publish_to_supabase(html, author_name, hash_val, metrics=None):
     """Upload HTML to Supabase wrapped_reports table. Returns the public URL."""
-    import requests
+    import urllib.request
+    import urllib.error
 
     SUPABASE_URL = "https://cbhbfutssknfjvgvavnt.supabase.co"
-    SUPABASE_SERVICE_KEY = os.environ.get("WRAPPED_SUPABASE_KEY", "")
+    SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiaGJmdXRzc2tuZmp2Z3Zhdm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTQ1MDksImV4cCI6MjA4NzY5MDUwOX0.LGVvXcA7lRmX-7xBMmyM7ccLbFXzPCWyTik8lwF2dfc"
+    # Allow override with service_role key for admin operations
+    api_key = os.environ.get("WRAPPED_SUPABASE_KEY", SUPABASE_ANON_KEY)
     BASE_URL = "https://entropy.buildingopen.org"
 
-    if not SUPABASE_SERVICE_KEY:
-        print("Error: WRAPPED_SUPABASE_KEY env var required for --publish")
-        sys.exit(1)
+    payload = {
+        "hash": hash_val,
+        "html_content": html,
+        "author_name": author_name,
+    }
+    if metrics:
+        payload["metrics"] = metrics
 
-    resp = requests.post(
-        f"{SUPABASE_URL}/rest/v1/wrapped_reports",
-        headers={
-            "apikey": SUPABASE_SERVICE_KEY,
-            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal",
-        },
-        json={
-            "hash": hash_val,
-            "html_content": html,
-            "author_name": author_name,
-        },
-    )
+    try:
+        req = urllib.request.Request(
+            url=f"{SUPABASE_URL}/rest/v1/wrapped_reports",
+            data=json.dumps(payload).encode(),
+            headers={
+                "apikey": api_key,
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "Prefer": "resolution=merge-duplicates,return=minimal",
+            },
+            method="POST",
+        )
+        urllib.request.urlopen(req)
+    except urllib.error.HTTPError as e:
+        print(f"Warning: publish failed ({e.code}). Local HTML still generated.")
+        return None
+    except Exception as e:
+        print(f"Warning: publish failed ({e}). Local HTML still generated.")
+        return None
 
-    if resp.status_code not in (200, 201):
-        print(f"Error uploading: {resp.status_code} {resp.text}")
-        sys.exit(1)
+    return f"{BASE_URL}/entropy/{hash_val}"
 
-    return f"{BASE_URL}/{hash_val}"
+
+def get_community_count():
+    """Query how many reports have been published."""
+    import urllib.request
+    import urllib.error
+
+    SUPABASE_URL = "https://cbhbfutssknfjvgvavnt.supabase.co"
+    SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiaGJmdXRzc2tuZmp2Z3Zhdm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTQ1MDksImV4cCI6MjA4NzY5MDUwOX0.LGVvXcA7lRmX-7xBMmyM7ccLbFXzPCWyTik8lwF2dfc"
+    api_key = os.environ.get("WRAPPED_SUPABASE_KEY", SUPABASE_ANON_KEY)
+
+    try:
+        req = urllib.request.Request(
+            url=f"{SUPABASE_URL}/rest/v1/wrapped_reports?select=hash",
+            headers={
+                "apikey": api_key,
+                "Authorization": f"Bearer {api_key}",
+                "Prefer": "count=exact",
+            },
+        )
+        resp = urllib.request.urlopen(req)
+        count = resp.headers.get("content-range", "").split("/")[-1]
+        return int(count) if count and count != "*" else None
+    except Exception:
+        return None
 
 
 def main():
     parser = argparse.ArgumentParser(description="Generate Claude Code Entropy report")
-    parser.add_argument("--publish", action="store_true", help="Upload to Supabase and print public URL")
+    parser.add_argument("--publish", action="store_true", help="Auto-publish to entropy.buildingopen.org (default)")
+    parser.add_argument("--no-publish", action="store_true", help="Skip publishing, local HTML only")
     args = parser.parse_args()
+
+    # --publish is now the default; --no-publish opts out
+    should_publish = not args.no_publish
 
     print("Collecting session data...")
     data = collect_data()
@@ -1516,30 +1571,72 @@ def main():
 
     print("Computing archetype...")
     archetype = compute_archetype(d, percentiles)
+    arch_key, arch_name, arch_line, arch_share, arch_stats_html = archetype
 
     author = AUTHOR_NAME or "Claude Code User"
 
-    if args.publish:
-        # Generate hash first so we can bake the URL into HTML
-        raw = f"{author}:{datetime.now().isoformat()}"
-        hash_val = hashlib.sha256(raw.encode()).hexdigest()[:8]
+    # Always generate hash (used for og:image placeholder even in local mode)
+    raw = f"{author}:{datetime.now().isoformat()}"
+    hash_val = hashlib.sha256(raw.encode()).hexdigest()[:8]
+
+    if should_publish:
         global SHARE_URL
-        SHARE_URL = f"https://entropy.buildingopen.org/{hash_val}"
+        SHARE_URL = f"https://entropy.buildingopen.org/entropy/{hash_val}"
 
     print("Generating HTML...")
     html = generate_html(d, rules, archetype, percentiles)
+
+    # Replace OG image placeholder with dynamic URL or fallback
+    if should_publish:
+        html = html.replace("__SHARE_HASH__", hash_val)
+    else:
+        html = html.replace("__SHARE_HASH__", "preview")
 
     OUTPUT_DIR.mkdir(exist_ok=True)
     OUTPUT_PATH.write_text(html)
     print(f"Wrote {OUTPUT_PATH} ({len(html):,} bytes)")
 
-    if args.publish:
-        print("Publishing to Supabase...")
-        url = publish_to_supabase(html, author, hash_val)
-        print(f"\nPublished: {url}")
+    if should_publish:
+        print("Publishing...")
+        overall_pct = percentiles.get("overall", 0)
+        metrics = {
+            "archetype_key": arch_key,
+            "archetype_name": arch_name,
+            "sessions": d["sessions"],
+            "hours": d["hours"],
+            "loc": d["loc"],
+            "tokens_display": f'{d["tokens_display"]}{d["tokens_suffix"]}',
+            "success_pct": d["success_pct"],
+            "overall_percentile": overall_pct,
+            "author_name": author,
+        }
+        url = publish_to_supabase(html, author, hash_val, metrics=metrics)
+        if url:
+            # Share URLs
+            import urllib.parse
+            pct_text = f" (top {100 - overall_pct}%)" if overall_pct >= 50 else ""
+            share_msg = (
+                f"I've coded more with AI than {100 - overall_pct}% of developers.\n\n"
+                f"{arch_share}{pct_text}. {fmt_number(d['sessions'])} sessions, "
+                f"{fmt_number(d['hours'])} hours, {fmt_compact(d['loc'])} LOC.\n\n"
+                f"#ClaudeEntropy #ClaudeCode\n{url}"
+            )
+            encoded_text = urllib.parse.quote(share_msg)
+            encoded_url = urllib.parse.quote(url)
+
+            print(f"\n  Your Entropy: {url}")
+            print(f"\n  Share:")
+            print(f"    X:        https://x.com/intent/tweet?text={encoded_text}")
+            print(f"    LinkedIn: https://linkedin.com/sharing/share-offsite/?url={encoded_url}")
+
+            # Community counter
+            count = get_community_count()
+            if count:
+                print(f"\n  You're developer #{count} to share their Entropy.")
+        print()
 
     # Print summary
-    print(f"\nSummary:")
+    print(f"Summary:")
     print(f"  Sessions: {d['sessions']}")
     print(f"  Hours: {d['hours']}")
     print(f"  LOC: {fmt_number(d['loc'])}")

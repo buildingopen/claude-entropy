@@ -1,6 +1,6 @@
 {
   "name": "claude-entropy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Spotify Wrapped for Claude Code - visualize your AI coding stats",
   "bin": {
     "claude-entropy": "./bin/claude-entropy.js"

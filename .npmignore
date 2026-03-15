@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
-*.md
+patterns/*.md
+CLAUDE.md
+FINDINGS.md
+WORKPLAN*.md
 dist/
 reports/
 screenshots/
@@ -12,4 +15,3 @@ requirements.txt
 analyze.py
 run_all.py
 generate_findings.py
-FINDINGS.md

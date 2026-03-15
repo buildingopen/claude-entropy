@@ -1,0 +1,69 @@
+# Claude Code Entropy
+
+Spotify Wrapped for Claude Code. Analyzes your `~/.claude/projects/` session data and generates a visual HTML report with usage stats, coding patterns, and personalized insights.
+
+## Quick Start
+
+```bash
+npx claude-entropy
+```
+
+Requires: Node.js 14+ and Python 3.8+ on PATH.
+
+## What You Get
+
+A self-contained HTML report with 20+ slides covering:
+
+- **Sessions & hours** coded with Claude, daily streaks, peak coding days
+- **Lines of code** generated across all projects
+- **Token usage** and estimated cost (input, output, cache)
+- **Project breakdown** with per-project stats
+- **Prompting style** analysis: length, specificity, effectiveness
+- **Error patterns**: taxonomy of 14 error categories
+- **Retry loops**: wasted tokens from stuck patterns
+- **Communication tone**: niceness score, swear tracking
+- **Self-scoring bias**: how accurately Claude rates its own work
+- **Tool usage**: misuse detection (Bash vs Read, etc.)
+- **Coding personality**: archetype based on your usage patterns
+- **Percentile ranking**: how you compare to other Claude Code users
+
+## Options
+
+```bash
+npx claude-entropy --author "Your Name"     # Display name (default: git user.name)
+npx claude-entropy --tz 1                    # UTC offset (default: auto-detect)
+npx claude-entropy --money 600               # Subscription cost for ROI slide
+npx claude-entropy --money-detail "3 Max"    # Subscription description
+npx claude-entropy --sanitize                # Anonymize project names for sharing
+npx claude-entropy --publish                 # Publish to buildingopen.org/wrapped/
+npx claude-entropy --help                    # Show all options
+```
+
+## Output
+
+Generates `./wrapped.html` in your current directory and opens it in your browser.
+
+## How It Works
+
+1. Reads Claude Code session files from `~/.claude/projects/` (JSONL format)
+2. Runs 10 pattern analyzers in parallel (pure Python, no pip dependencies)
+3. Computes aggregated stats, percentiles, and a personality archetype
+4. Generates a single self-contained HTML file with animated slides
+
+All processing happens locally. No data is sent anywhere unless you use `--publish`.
+
+## Requirements
+
+- **Node.js** 14+ (for `npx`)
+- **Python** 3.8+ (for analysis, uses only stdlib)
+- **Claude Code** session data in `~/.claude/projects/`
+
+Override the data directory with `CLAUDE_PROJECTS_DIR` env var.
+
+## Privacy
+
+Your session data never leaves your machine. The `--sanitize` flag anonymizes project names and removes prompt examples for safe sharing. The `--publish` flag uploads only the final HTML report (not raw session data) to a public URL.
+
+## License
+
+MIT

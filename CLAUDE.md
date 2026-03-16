@@ -14,6 +14,8 @@ Analyzes Claude Code (and future: Codex, OpenCode) conversation transcripts to f
 - `generate_findings.py` - Auto-generates `FINDINGS.md` from pattern outputs
 - `generate_wrapped.py` - Generates self-contained `dist/wrapped.html` from session data (imports all pattern analyzers, single-pass iteration, string-substitution into `wrapped.html` template)
 - `wrapped.html` - Template for wrapped report (contains `__PLACEHOLDER__` markers)
+- `generate_prompt_coach.py` - Generates self-contained `dist/prompt_coach.html` with per-prompt analysis, anti-pattern detection, and personalized coaching tips
+- `prompt_coach.html` - Template for prompt coach report (contains `__PC_*__` markers)
 - `run_all.py` - Unified runner for all pattern scripts + findings generation
 - `tests/` - Test suite for core extraction logic
 - `reports/` - Generated Gemini analysis reports (gitignored)
@@ -43,8 +45,11 @@ python3 run_all.py --wrapped
 # Generate with custom config
 WRAPPED_AUTHOR="Your Name" WRAPPED_TZ_OFFSET=2 python3 generate_wrapped.py
 
-# Generate and publish to buildingopen.org/wrapped/<hash>
-WRAPPED_AUTHOR="Your Name" WRAPPED_SUPABASE_KEY="service_role_key" python3 generate_wrapped.py --publish
+# Generate and auto-publish to entropy.buildingopen.org/entropy/<hash>
+WRAPPED_AUTHOR="Your Name" python3 generate_wrapped.py
+
+# Skip auto-publishing (local HTML only)
+WRAPPED_AUTHOR="Your Name" python3 generate_wrapped.py --no-publish
 
 # Run tests
 python3 -m pytest tests/ -v
@@ -52,7 +57,7 @@ python3 -m pytest tests/ -v
 
 ## Configuration
 
-- `CLAUDE_PROJECTS_DIR` env var overrides the default `~/.claude/projects/` data path
+- `CLAUDE_PROJECTS_DIR` env var overrides the default `~/.claude/projects/` data path (supports colon-separated multiple directories, e.g. `/path/one:/path/two`)
 - Default Gemini model: `gemini-3-flash-preview` (override with `--model`)
 
 ### Wrapped report env vars
@@ -61,13 +66,16 @@ python3 -m pytest tests/ -v
 - `WRAPPED_MONEY_PAID` - Total subscription cost in USD for ROI comparison (optional)
 - `WRAPPED_MONEY_DETAIL` - Description of subscription (e.g. "3 Claude Max accounts")
 - `WRAPPED_SANITIZE` - Set to `1` to anonymize project names, clear swear quotes and prompt examples (for public sharing)
-- `WRAPPED_SHARE_URL` - Public URL for share buttons (auto-set with `--publish`)
-- `WRAPPED_SUPABASE_KEY` - Supabase service_role key for publishing (project: cbhbfutssknfjvgvavnt)
+- `WRAPPED_SHARE_URL` - Public URL for share buttons (auto-set when publishing)
+- `WRAPPED_SUPABASE_KEY` - Override anon key with service_role key (optional, project: cbhbfutssknfjvgvavnt)
 
 ### Quick start (for other Claude Code users)
 ```bash
-# One-liner (requires python3 on PATH)
+# One-liner - wrapped report (default)
 npx claude-entropy
+
+# Prompt coach report
+npx claude-entropy prompt-coach
 
 # With options
 npx claude-entropy --author "Your Name" --tz 1
@@ -78,8 +86,11 @@ npx claude-entropy --money 600 --money-detail "3 Claude Max accounts"
 # Sanitized for sharing
 npx claude-entropy --sanitize
 
-# Publish to web
-WRAPPED_SUPABASE_KEY="..." npx claude-entropy --publish
+# Prompt coach, sanitized
+npx claude-entropy prompt-coach --sanitize
+
+# Skip auto-publish (local only)
+npx claude-entropy --no-publish
 ```
 
 ### CLI options
@@ -88,7 +99,7 @@ WRAPPED_SUPABASE_KEY="..." npx claude-entropy --publish
 - `--money USD` - Total subscription cost for ROI slide
 - `--money-detail DESC` - Subscription description
 - `--sanitize` - Anonymize project names for sharing
-- `--publish` - Publish to buildingopen.org/wrapped/
+- `--no-publish` - Skip auto-publishing (local HTML only; default: auto-publish)
 
 ### Direct Python usage
 ```bash

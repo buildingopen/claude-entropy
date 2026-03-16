@@ -121,6 +121,7 @@ class TestMineSignals:
             "frustration_count", "frustration_per_session", "all_caps_count",
             "question_ratio", "numbered_steps_pct", "unique_projects",
             "top_projects", "build_pct", "fix_pct", "explore_pct",
+            "mixed_pct", "deploy_pct", "dominant_category", "generic_session_pct",
             "success_pct", "abandoned_pct", "correction_rate", "correction_total",
             "total_commits", "deploy_count", "avg_words_per_prompt",
             "prompts_per_session", "avg_spec", "guiraud", "unique_words",

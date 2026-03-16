@@ -101,16 +101,24 @@ def mine_signals(data):
                 numbered_steps_count += 1
     numbered_steps_pct = numbered_steps_count / max(total_prompts, 1) * 100
 
-    # Projects
+    # Projects - filter out catch-all buckets that aren't real projects
+    GENERIC_PROJECTS = {"AX41 General", "Mac General", "General", "Unknown", "unknown"}
     project_counts = Counter(s["project"] for s in sessions)
     unique_projects = len(project_counts)
-    top_projects = project_counts.most_common(5)
+    # Top projects excludes generic catch-alls
+    meaningful_projects = {k: v for k, v in project_counts.items() if k not in GENERIC_PROJECTS}
+    top_projects = Counter(meaningful_projects).most_common(5)
+    generic_session_count = sum(project_counts.get(g, 0) for g in GENERIC_PROJECTS)
+    generic_session_pct = generic_session_count / n * 100
 
     # Category breakdown
     cat_counts = Counter(s["category"] for s in sessions)
     build_pct = cat_counts.get("BUILD", 0) / n * 100
     fix_pct = cat_counts.get("FIX", 0) / n * 100
     explore_pct = cat_counts.get("EXPLORE", 0) / n * 100
+    mixed_pct = cat_counts.get("MIXED", 0) / n * 100
+    deploy_pct = cat_counts.get("DEPLOY", 0) / n * 100
+    dominant_category = cat_counts.most_common(1)[0][0] if cat_counts else "BUILD"
 
     # Success
     success_count = sum(1 for s in sessions if s["outcome"] in ("SUCCESS", "PARTIAL_SUCCESS"))
@@ -315,6 +323,10 @@ def mine_signals(data):
         "build_pct": round(build_pct, 1),
         "fix_pct": round(fix_pct, 1),
         "explore_pct": round(explore_pct, 1),
+        "mixed_pct": round(mixed_pct, 1),
+        "deploy_pct": round(deploy_pct, 1),
+        "dominant_category": dominant_category,
+        "generic_session_pct": round(generic_session_pct, 1),
         "success_pct": round(success_pct, 1),
         "abandoned_pct": round(abandoned_pct, 1),
         "correction_rate": round(correction_rate, 1),
@@ -398,13 +410,17 @@ def build_first_impression(s):
     else:
         parts.append(f"Your prompts average {s['avg_words_per_prompt']:.0f} words each, {s['total_prompts']:,} of them total, a steady working rhythm.")
 
-    # Builder vs fixer
-    if s["build_pct"] > s["fix_pct"] + 20:
+    # Work style characterization
+    if s["mixed_pct"] > 30:
+        parts.append(f"Most of your sessions ({s['mixed_pct']:.0f}%) are mixed-mode: building, fixing, and exploring in the same sitting. You don't compartmentalize your work.")
+    elif s["explore_pct"] > s["build_pct"] + 15:
+        parts.append(f"You spend more time exploring ({s['explore_pct']:.0f}%) than building ({s['build_pct']:.0f}%). Understanding comes before action.")
+    elif s["build_pct"] > s["fix_pct"] + 20:
         parts.append(f"You're a builder at heart: {s['build_pct']:.0f}% of your sessions create something new.")
     elif s["fix_pct"] > s["build_pct"] + 20:
         parts.append(f"You spend more time fixing than building ({s['fix_pct']:.0f}% vs {s['build_pct']:.0f}%), a pattern that says something about your relationship with existing code.")
     else:
-        parts.append(f"You split your time between building ({s['build_pct']:.0f}%) and fixing ({s['fix_pct']:.0f}%), balanced between creation and maintenance.")
+        parts.append(f"Your sessions split across building ({s['build_pct']:.0f}%), fixing ({s['fix_pct']:.0f}%), and exploring ({s['explore_pct']:.0f}%).")
 
     # Success rate quick hit
     if s["success_pct"] > 80:
@@ -430,10 +446,15 @@ def build_what_you_care_about(s):
 
     if s["top_projects"] and not SANITIZE:
         proj_str = _proj_list(s["top_projects"], 3)
-        parts.append(f"Your most-visited: {proj_str}.")
+        if s["generic_session_pct"] > 40:
+            parts.append(f"{s['generic_session_pct']:.0f}% of your sessions are ad-hoc work not tied to a specific project. Of the rest, your most-visited: {proj_str}.")
+        else:
+            parts.append(f"Your most-visited: {proj_str}.")
 
     if s["build_pct"] > 50:
         parts.append(f"{s['build_pct']:.0f}% of your sessions are building new things. Creation is your default mode.")
+    elif s["fix_pct"] > 30:
+        parts.append(f"Maintenance dominates: {s['fix_pct']:.0f}% of sessions are fixing existing work. You care about getting things right, not just getting them out.")
     if s["explore_pct"] > 20:
         parts.append(f"You spend {s['explore_pct']:.0f}% of your time just exploring, reading code without changing it. Curiosity isn't an afterthought for you.")
     if s["deploy_count"] > 50:
@@ -477,13 +498,17 @@ def build_how_you_treat_others(s):
         parts.append(f"You've said 'please' {s['please_count']} times and 'thanks' {s['thanks_count']} times. That's a deliberate choice, repeated hundreds of times, in a context where no one is watching.")
     elif s["nice_word_count"] > 20:
         parts.append(f"'Please' appears {s['please_count']} times, 'thanks' {s['thanks_count']} times. Enough to show the instinct is there.")
-    elif s["nice_word_count"] == 0:
+    elif s["nice_word_count"] > 0:
+        parts.append(f"'Please' appears {s['please_count']} times, 'thanks' {s['thanks_count']} times across {s['sessions_analyzed']} sessions. Almost nothing. You don't perform gratitude; if it shows up, it's genuine.")
+    else:
         parts.append("Not a single 'please' or 'thanks' in your entire history. That's not rudeness; it's a particular kind of efficiency.")
 
     if s["positive_ending_pct"] > 40:
         parts.append(f"You end {s['positive_ending_pct']:.0f}% of your sessions on a positive note, a 'thanks' or 'great' as you close out. The endings matter to you.")
     elif s["positive_ending_pct"] > 15:
         parts.append(f"You end {s['positive_ending_pct']:.0f}% of sessions positively. When things go well, you acknowledge it.")
+    elif s["positive_ending_pct"] < 10 and s["sessions_analyzed"] > 50:
+        parts.append(f"Only {s['positive_ending_pct']:.0f}% of your sessions end with a positive word. You don't celebrate completions; you just move on to the next thing.")
 
     if s["frustration_per_session"] > 2:
         parts.append(f"But the frustration is real: {s['frustration_count']} outbursts across your history, averaging {s['frustration_per_session']:.1f} per session.")
@@ -550,10 +575,14 @@ def build_your_drive(s):
     elif s["duration_cv"] < 0.4 and s["sessions_analyzed"] > 30:
         parts.append("Your session lengths are remarkably consistent. You have a natural working rhythm and you stick to it.")
 
-    if s["build_pct"] > 50 and s["deploy_count"] > 10:
+    if s["mixed_pct"] > 30 and s["deploy_count"] > 10:
+        parts.append(f"You don't separate building from fixing from exploring; you do whatever the problem demands, and you ship constantly ({s['deploy_count']:,} deployments).")
+    elif s["build_pct"] > 50 and s["deploy_count"] > 10:
         parts.append(f"Building is your dominant mode ({s['build_pct']:.0f}%), and you ship what you build ({s['deploy_count']:,} deployments). You're not a tinkerer; you're a shipper.")
     elif s["fix_pct"] > 50:
         parts.append(f"You spend most of your time fixing ({s['fix_pct']:.0f}%). Your drive is less about creating and more about making things right.")
+    elif s["deploy_count"] > 100:
+        parts.append(f"Regardless of session type, you ship: {s['deploy_count']:,} deployments across {s['sessions_analyzed']} sessions.")
 
     if s["correction_rate"] > 10:
         parts.append(f"Your {s['correction_rate']:.1f}% correction rate reveals high standards. You don't accept 'good enough' from your tools.")
@@ -781,6 +810,8 @@ def build_what_id_tell_you(s):
     # Pattern they might not see
     if s["abandoned_pct"] > 25 and s["build_pct"] > 40:
         parts.append(f"You start a lot of things ({s['build_pct']:.0f}% build sessions) but abandon {s['abandoned_pct']:.0f}% of them. The ambition is real, but so is the pattern of starting more than you finish.")
+    elif s["explore_pct"] > 25 and s["build_pct"] < 20:
+        parts.append(f"You spend {s['explore_pct']:.0f}% of your time exploring and only {s['build_pct']:.0f}% building from scratch. If you feel like you're not shipping enough, this ratio is why. Understanding is eating into creation time.")
     elif s["fix_pct"] > s["build_pct"] + 20:
         parts.append(f"You spend {s['fix_pct']:.0f}% of your time fixing and only {s['build_pct']:.0f}% building. If that ratio doesn't match your aspirations, the gap is worth examining.")
 
@@ -790,13 +821,13 @@ def build_what_id_tell_you(s):
     elif s["question_ratio"] > 20 and s["avg_spec"] > 7:
         parts.append("You ask a lot of questions and your prompts are highly specific. That's a powerful combination, but it can also mean you're solving problems in your head twice: once when formulating the question, and again when checking the answer.")
 
-    # Closing honest note
+    # Closing - data-driven summary, not sentiment
     if s["total_hours"] > 500:
-        parts.append(f"After {s['total_hours']:.0f} hours of observation, the clearest thing about you is that you care. Not everyone who uses AI tools cares this much about the outcome. The frustration, the corrections, the late nights: they're all symptoms of giving a damn.")
+        parts.append(f"After {s['total_hours']:.0f} hours and {s['total_prompts']:,} prompts, the data paints a consistent picture: {s['success_pct']:.0f}% success rate, {s['deploy_count']:,} deployments, {s['total_commits']:,} commits. The numbers say you're productive. The {s['correction_rate']:.1f}% correction rate and {s['frustration_per_session']:.1f} frustration events per session say you're not satisfied with productive.")
     elif s["total_hours"] > 100:
-        parts.append(f"Across {s['total_hours']:.0f} hours, the picture is coherent: you know what you want, you work hard to get it, and you're harder on yourself than the data justifies.")
+        parts.append(f"Across {s['total_hours']:.0f} hours, the profile is internally consistent: your work habits, communication style, and error responses all point the same direction. You know what you want and you push until you get it.")
     else:
-        parts.append(f"With {s['total_hours']:.0f} hours in the data, this portrait will sharpen over time. But the broad strokes are already clear: the way you work is intentional, not accidental.")
+        parts.append(f"With {s['total_hours']:.0f} hours in the data, this portrait will sharpen with more sessions. The broad strokes are already visible, but the finer details need more data points.")
 
     return " ".join(parts)
 

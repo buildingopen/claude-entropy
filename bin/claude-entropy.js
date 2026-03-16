@@ -24,6 +24,7 @@ Options:
   --money-detail DESC  Subscription description
   --sanitize           Anonymize project names in local HTML
   --publish            Publish to entropy.buildingopen.org (auto-sanitized)
+  -v, --version        Show version
   -h, --help           Show this help
 
 100% local analysis. Data never leaves your machine unless you --publish.
@@ -39,6 +40,8 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === '-h' || arg === '--help') {
       args.help = true;
+    } else if (arg === '-v' || arg === '--version') {
+      args.version = true;
     } else if (arg === '--sanitize') {
       args.sanitize = true;
     } else if (arg === '--publish') {
@@ -88,6 +91,12 @@ function main() {
 
   if (args.help) {
     console.log(HELP);
+    process.exit(0);
+  }
+
+  if (args.version) {
+    const pkg = require('../package.json');
+    console.log('claude-entropy ' + pkg.version);
     process.exit(0);
   }
 
@@ -165,9 +174,15 @@ function main() {
 
   const sub = SUBCOMMANDS[subcommand];
 
-  // Build python args - publish is opt-in
+  // Build python args - publish is opt-in (wrapped only)
   const pyArgs = [];
-  if (subcommand === 'wrapped' && args.publish) pyArgs.push('--publish');
+  if (args.publish) {
+    if (subcommand === 'wrapped') {
+      pyArgs.push('--publish');
+    } else {
+      console.log('Note: --publish is only supported for the wrapped report. Generating local report.');
+    }
+  }
 
   // Run the Python script from the package directory
   const scriptDir = path.join(__dirname, '..');

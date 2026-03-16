@@ -1,6 +1,6 @@
 {
   "name": "claude-entropy",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Spotify Wrapped + Prompt Coach for Claude Code - visualize your AI coding stats",
   "bin": {
     "claude-entropy": "./bin/claude-entropy.js"

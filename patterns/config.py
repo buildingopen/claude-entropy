@@ -3,7 +3,11 @@
 import os
 from pathlib import Path
 
-CLAUDE_PROJECTS_DIR = Path(os.environ.get("CLAUDE_PROJECTS_DIR", str(Path.home() / ".claude" / "projects")))
+_raw = os.environ.get("CLAUDE_PROJECTS_DIR", str(Path.home() / ".claude" / "projects"))
+_sep = ";" if os.name == "nt" else ":"
+CLAUDE_PROJECTS_DIRS = [Path(p) for p in _raw.split(_sep) if p.strip()]
+# Keep single CLAUDE_PROJECTS_DIR for backward compat (first entry)
+CLAUDE_PROJECTS_DIR = CLAUDE_PROJECTS_DIRS[0] if CLAUDE_PROJECTS_DIRS else Path.home() / ".claude" / "projects"
 PATTERNS_DIR = Path(__file__).parent
 OUTPUT_DIR = PATTERNS_DIR  # outputs live alongside scripts
 MIN_SESSION_SIZE = 100 * 1024  # 100KB default
@@ -114,16 +118,24 @@ def resolve_project_name(cwd_or_path):
 def find_sessions(min_size=MIN_SESSION_SIZE, max_sessions=MAX_SESSIONS,
                   include_subagents=False):
     """Find recent JSONL sessions above min_size, sorted by recency."""
+    seen = set()
     sessions = []
-    for jsonl in CLAUDE_PROJECTS_DIR.rglob("*.jsonl"):
-        if not include_subagents and "subagent" in str(jsonl):
+    for projects_dir in CLAUDE_PROJECTS_DIRS:
+        if not projects_dir.exists():
             continue
-        try:
-            stat = jsonl.stat()
-            if stat.st_size >= min_size:
-                sessions.append((stat.st_mtime, stat.st_size, jsonl))
-        except OSError:
-            continue
+        for jsonl in projects_dir.rglob("*.jsonl"):
+            if not include_subagents and "subagent" in str(jsonl):
+                continue
+            try:
+                resolved = jsonl.resolve()
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                stat = jsonl.stat()
+                if stat.st_size >= min_size:
+                    sessions.append((stat.st_mtime, stat.st_size, jsonl))
+            except OSError:
+                continue
     sessions.sort(reverse=True)
     return sessions[:max_sessions]
 

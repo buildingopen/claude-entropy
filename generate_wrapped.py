@@ -12,6 +12,8 @@ import hashlib
 import json
 import logging
 import os
+import html as html_mod
+import re
 import sys
 import statistics
 from collections import Counter, defaultdict
@@ -202,7 +204,6 @@ def censor_word(w):
 def collect_data():
     """Single pass over all sessions, calling all analyzers."""
     sessions = find_all_sessions()
-    print(f"Found {len(sessions)} session files")
 
     # Accumulators
     outcomes = []
@@ -216,9 +217,6 @@ def collect_data():
     session_word_counts = {}  # filepath -> list of word counts per user msg
 
     for i, filepath in enumerate(sessions):
-        if (i + 1) % 100 == 0:
-            print(f"  Processing {i + 1}/{len(sessions)}...")
-
         # 1. Session outcomes
         try:
             o = analyze_outcome(filepath)
@@ -918,12 +916,12 @@ def generate_html(d, rules, archetype=None, percentiles=None):
             bg = f"linear-gradient(90deg,rgba(34,197,94,0.7),rgba(34,197,94,{opacity}))" if i == 0 else f"rgba(34,197,94,{opacity})"
             projects_html += f'''<div class="bar-row">
       <span class="bar-rank">#{i + 1}</span>
-      <span class="bar-label">{name}</span>
+      <span class="bar-label">{html_mod.escape(name)}</span>
       <div class="bar-track"><div class="bar-fill" data-width="{pct:.1f}%" style="width:0%;background:{bg};">{count}</div></div>
     </div>\n'''
         top_name = d["top_projects"][0][0]
         top_count = d["top_projects"][0][1]
-        projects_detail = f"{top_count} sessions on {top_name}"
+        projects_detail = f"{top_count} sessions on {html_mod.escape(top_name)}"
     else:
         projects_detail = "No project data"
 
@@ -941,7 +939,7 @@ def generate_html(d, rules, archetype=None, percentiles=None):
     # ── Style example pills ──
     style_pills = ""
     for ex in d.get("prompt_examples", [])[:5]:
-        style_pills += f'<span class="prompt-example">&quot;{ex}&quot;</span>\n'
+        style_pills += f'<span class="prompt-example">&quot;{html_mod.escape(ex)}&quot;</span>\n'
 
     # ── Money ──
     cost = d["total_cost"]
@@ -1441,7 +1439,7 @@ def generate_html(d, rules, archetype=None, percentiles=None):
         "__TONE_PEAK_NICE_HOUR__": hour_label(d["nice_peak_hour"]),
         "__TONE_PEAK_NICE_DETAIL__": f'{d["nice_peak_count"]} nice words at {hour_label(d["nice_peak_hour"])} {tz_label}',
         "__TONE_TAGLINE__": tone_tagline,
-        "__TONE_QUOTE__": f'"{d["swear_example_quote"]}"' if d["swear_example_quote"] else "",
+        "__TONE_QUOTE__": f'"{html_mod.escape(d["swear_example_quote"])}"' if d["swear_example_quote"] else "",
 
         # Swears
         "__SWEARS_COUNT__": str(d["user_swears_total"]),
@@ -1479,6 +1477,110 @@ def generate_html(d, rules, archetype=None, percentiles=None):
         html = html.replace(placeholder, str(value))
 
     return html
+
+
+def sanitize_html_for_publish(html):
+    """Strip private data from HTML for public sharing.
+
+    Returns (sanitized_html, strip_counts) where strip_counts tracks
+    how many of each category were replaced.
+    """
+    counts = {"projects": 0, "prompts": 0, "swear_quote": 0, "swear_words": 0, "machines": 0}
+
+    # 1. Project names: <span class="bar-label">ProjectName</span> -> "Project N"
+    project_idx = [0]
+    def _replace_project(m):
+        project_idx[0] += 1
+        counts["projects"] += 1
+        return f'<span class="bar-label">Project {project_idx[0]}</span>'
+    html = re.sub(r'<span class="bar-label">[^<]+</span>', _replace_project, html)
+
+    # Also sanitize the projects_detail text: "N sessions on ProjectName"
+    html = re.sub(
+        r'(\d+ sessions on )[^<"]+',
+        lambda m: m.group(1) + "Project 1",
+        html,
+    )
+
+    # 2. Prompt examples: strip all <span class="prompt-example">...</span> from inside the container.
+    #    Using a targeted approach that doesn't depend on div nesting.
+    counts["prompts"] = len(re.findall(r'<span class="prompt-example">[^<]*</span>', html))
+    html = re.sub(r'<span class="prompt-example">[^<]*</span>\s*', '', html)
+
+    # 3. Swear quote: the __TONE_QUOTE__ replacement produces "quoted text" in a label-detail div
+    orig = html
+    html = re.sub(
+        r'(<div class="fade-up label-detail">)"[^"]*"(</div>)',
+        r'\1\2',
+        html,
+    )
+    if html != orig:
+        counts["swear_quote"] = 1
+
+    # 4. Swear word pills: strip all individual pill divs from inside the container.
+    #    Each pill: <div class="swear-pill">...<span class="censored">...</span>...</div>
+    #    The container has nested divs, so we can't use .*? to match the outer div.
+    #    Instead, strip each pill individually, then empty the container.
+    counts["swear_words"] = len(re.findall(r'<div class="swear-pill">', html))
+    # Remove each swear-pill div (single nesting level, no nested divs inside pills)
+    html = re.sub(r'<div class="swear-pill">.*?</div>\s*', '', html, flags=re.DOTALL)
+
+    # 5. Machine names: scoped to the sessions split labels container only.
+    #    Container: <div ...flex...font-size:0.7rem...>LABELS</div>
+    #    Labels are: <span>COUNT MACHINENAME</span>
+    #    We extract the container, replace inside it, then reassemble.
+    SPLIT_CONTAINER_RE = re.compile(
+        r'(display:flex;\s*gap:2rem;[^"]*font-size:0\.7rem[^>]*>)(.*?)(</div>)',
+        re.DOTALL,
+    )
+    machine_idx = [0]
+    def _replace_split_container(container_match):
+        prefix, inner, suffix = container_match.group(1), container_match.group(2), container_match.group(3)
+        def _replace_machine(m):
+            machine_idx[0] += 1
+            counts["machines"] += 1
+            return f'<span>{m.group(1)} Machine {machine_idx[0]}</span>'
+        sanitized_inner = re.sub(
+            r'<span>(\d+) ([A-Za-z][A-Za-z0-9_-]*)</span>',
+            _replace_machine,
+            inner,
+        )
+        return prefix + sanitized_inner + suffix
+    html = SPLIT_CONTAINER_RE.sub(_replace_split_container, html)
+
+    return html, counts
+
+
+def verify_sanitization(html, project_names, machine_names, prompt_examples=None, swear_quote=None):
+    """Defense-in-depth: verify no known private data survives in sanitized HTML.
+
+    Returns list of leak descriptions. Empty list = clean.
+    """
+    leaks = []
+    for name in project_names:
+        # Check in bar-label context to avoid false positives from common words
+        escaped = html_mod.escape(name)
+        if f'bar-label">{escaped}</span>' in html or f'sessions on {escaped}' in html:
+            leaks.append(f"project name '{name}' still present")
+    for name in machine_names:
+        if re.search(r'<span>\d+\s+' + re.escape(name) + r'</span>', html):
+            leaks.append(f"machine name '{name}' still present")
+    if prompt_examples:
+        for ex in prompt_examples:
+            escaped = html_mod.escape(ex)
+            if f'prompt-example">&quot;{escaped}&quot;</span>' in html:
+                leaks.append(f"prompt example '{ex}' still present")
+    if swear_quote:
+        escaped = html_mod.escape(swear_quote)
+        if f'label-detail">"' in html and escaped in html:
+            leaks.append("swear quote text still present")
+    if '<span class="uncensored">' in html:
+        leaks.append("uncensored swear spans still present")
+    if '<span class="censored">' in html:
+        leaks.append("censored swear spans still present")
+    if re.search(r'<span class="prompt-example">', html):
+        leaks.append("prompt example spans still present")
+    return leaks
 
 
 def publish_to_supabase(html, author_name, hash_val, metrics=None):
@@ -1548,31 +1650,49 @@ def get_community_count():
         return None
 
 
+def _progress(label, value="", width=40):
+    """Print a progress line: label padded to width, then value."""
+    padding = max(1, width - len(label))
+    sys.stdout.write(f"  {label}{'.' * padding} {value}\n")
+    sys.stdout.flush()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate Claude Code Entropy report")
-    parser.add_argument("--publish", action="store_true", help="Auto-publish to entropy.buildingopen.org (default)")
-    parser.add_argument("--no-publish", action="store_true", help="Skip publishing, local HTML only")
+    parser.add_argument("--publish", action="store_true", help="Publish to entropy.buildingopen.org (auto-sanitized)")
+    parser.add_argument("--no-publish", action="store_true", help="(deprecated, now the default)")
+    parser.add_argument("--sanitize", action="store_true", help="Anonymize local HTML (project names, prompts, swears, machines)")
     args = parser.parse_args()
 
-    # --publish is now the default; --no-publish opts out
-    should_publish = not args.no_publish
+    should_publish = args.publish
+    should_sanitize_local = args.sanitize or os.environ.get("WRAPPED_SANITIZE") == "1"
 
-    print("Collecting session data...")
+    # Welcome screen
+    print()
+    print("  ============================================")
+    print()
+    print("    CLAUDE CODE ENTROPY")
+    print("    Your AI coding story, visualized.")
+    print()
+    print("    100% local analysis. No AI calls.")
+    print("    Data never leaves your machine")
+    print("    unless you --publish.")
+    print()
+    print("  ============================================")
+    print()
+
     data = collect_data()
+    _progress("Scanning sessions", f"{data['session_count']} found")
 
-    print("Computing aggregates...")
     d = compute_aggregates(data)
+    _progress("Analyzing patterns", "done")
 
-    print("Computing rules...")
     rules = compute_rules(d)
-
-    print("Computing percentiles...")
     percentiles = compute_percentiles(d)
-
-    print("Computing archetype...")
     archetype = compute_archetype(d, percentiles)
-    arch_key, arch_name, arch_line, arch_share, arch_stats_html = archetype
+    _progress("Computing your archetype", "done")
 
+    arch_key, arch_name, arch_line, arch_share, arch_stats_html = archetype
     author = AUTHOR_NAME or "Claude Code User"
 
     # Always generate hash (used for og:image placeholder even in local mode)
@@ -1583,7 +1703,6 @@ def main():
         global SHARE_URL
         SHARE_URL = f"https://entropy.buildingopen.org/entropy/{hash_val}"
 
-    print("Generating HTML...")
     html = generate_html(d, rules, archetype, percentiles)
 
     # Replace OG image placeholder with dynamic URL or fallback
@@ -1592,13 +1711,66 @@ def main():
     else:
         html = html.replace("__SHARE_HASH__", "preview")
 
+    _progress("Building report", "done")
+
+    # Apply local sanitization if requested
+    if should_sanitize_local:
+        html, local_counts = sanitize_html_for_publish(html)
+        _progress("Sanitizing local HTML", "done")
+
     OUTPUT_DIR.mkdir(exist_ok=True)
     OUTPUT_PATH.write_text(html)
-    print(f"Wrote {OUTPUT_PATH} ({len(html):,} bytes)")
+    print()
+    print(f"  Output: {OUTPUT_PATH}")
+
+    # Summary stats
+    overall_pct = percentiles.get("overall", 0)
+    pct_text = f" (top {100 - overall_pct}%)" if overall_pct >= 50 else ""
+    print()
+    print(f"  {arch_name}{pct_text}")
+    print(f"  {d['sessions']} sessions, {d['hours']} hours, {fmt_compact(d['loc'])} LOC")
+    print(f"  {d['tokens_display']}{d['tokens_suffix']} tokens, ${d['total_cost']:,.0f} cost, {d['success_pct']}% success")
+    print()
 
     if should_publish:
-        print("Publishing...")
-        overall_pct = percentiles.get("overall", 0)
+        # Sanitize before publishing (always, even if local was also sanitized)
+        sanitized_html, strip_counts = sanitize_html_for_publish(
+            # Re-sanitize from original if local was sanitized (idempotent)
+            html
+        )
+
+        print("  Publishing (auto-sanitized)...")
+        parts = []
+        if strip_counts["projects"]:
+            parts.append(f'{strip_counts["projects"]} project names')
+        if strip_counts["prompts"]:
+            parts.append(f'{strip_counts["prompts"]} prompt examples')
+        if strip_counts["swear_quote"]:
+            parts.append(f'{strip_counts["swear_quote"]} swear quote')
+        if strip_counts["swear_words"]:
+            parts.append(f'{strip_counts["swear_words"]} swear word pills')
+        if strip_counts["machines"]:
+            parts.append(f'{strip_counts["machines"]} machine names')
+        if parts:
+            print(f"    Stripped: {', '.join(parts)}")
+
+        # Warn if nothing was stripped (template may have changed)
+        if sum(strip_counts.values()) == 0:
+            print("    Warning: nothing was stripped. Template may have changed.")
+
+        # Defense-in-depth: verify no known private data survives
+        project_names = [name for name, _ in d.get("top_projects", [])]
+        machine_names = list(d.get("machine_counts", {}).keys())
+        prompt_examples = d.get("prompt_examples", [])
+        swear_quote = d.get("swear_example_quote", "")
+        leaks = verify_sanitization(sanitized_html, project_names, machine_names, prompt_examples, swear_quote=swear_quote)
+        if leaks:
+            print(f"    ERROR: sanitization incomplete!")
+            for leak in leaks:
+                print(f"      - {leak}")
+            print("    Aborting publish. Local HTML still available.")
+            return
+
         metrics = {
             "archetype_key": arch_key,
             "archetype_name": arch_name,
@@ -1610,46 +1782,43 @@ def main():
             "overall_percentile": overall_pct,
             "author_name": author,
         }
-        url = publish_to_supabase(html, author, hash_val, metrics=metrics)
+        url = publish_to_supabase(sanitized_html, author, hash_val, metrics=metrics)
         if url:
-            # Share URLs
             import urllib.parse
-            pct_text = f" (top {100 - overall_pct}%)" if overall_pct >= 50 else ""
+            pct_text_share = f" (top {100 - overall_pct}%)" if overall_pct >= 50 else ""
             share_msg = (
                 f"I've coded more with AI than {100 - overall_pct}% of developers.\n\n"
-                f"{arch_share}{pct_text}. {fmt_number(d['sessions'])} sessions, "
+                f"{arch_share}{pct_text_share}. {fmt_number(d['sessions'])} sessions, "
                 f"{fmt_number(d['hours'])} hours, {fmt_compact(d['loc'])} LOC.\n\n"
                 f"#ClaudeEntropy #ClaudeCode\n{url}"
             )
             encoded_text = urllib.parse.quote(share_msg)
             encoded_url = urllib.parse.quote(url)
 
-            print(f"\n  Your Entropy: {url}")
-            print(f"\n  Share:")
-            print(f"    X:        https://x.com/intent/tweet?text={encoded_text}")
-            print(f"    LinkedIn: https://linkedin.com/sharing/share-offsite/?url={encoded_url}")
+            print()
+            print("  ============================================")
+            print()
+            print(f"    LIVE: {url}")
+            print()
+            print(f"    Share on X:")
+            print(f"    https://x.com/intent/tweet?text={encoded_text}")
+            print()
+            print(f"    Share on LinkedIn:")
+            print(f"    https://linkedin.com/sharing/share-offsite/?url={encoded_url}")
 
-            # Community counter
             count = get_community_count()
             if count:
-                print(f"\n  You're developer #{count} to share their Entropy.")
-        print()
+                print()
+                print(f"    Developer #{count} to share their Entropy.")
 
-    # Print summary
-    print(f"Summary:")
-    print(f"  Sessions: {d['sessions']}")
-    print(f"  Hours: {d['hours']}")
-    print(f"  LOC: {fmt_number(d['loc'])}")
-    print(f"  Tokens: {d['tokens_display']}{d['tokens_suffix']}")
-    print(f"  Cost: ${d['total_cost']:,.0f}")
-    print(f"  Success: {d['success_pct']}%")
-    print(f"  Errors: {d['total_errors']}")
-    print(f"  Loops: {d['loop_count']} ({d['wasted_tokens_m']}M tokens wasted)")
-    print(f"  Niceness: {d['niceness_score']}/10")
-    print(f"  Swears: {d['user_swears_total']}")
-    print(f"  Rules: {', '.join(r[0] for r in rules)}")
-    print(f"  Archetype: {archetype[1]}")
-    print(f"  Percentile: Top {100 - percentiles['overall']}% overall")
+            print()
+            print("  ============================================")
+        print()
+    else:
+        print("  ---")
+        print("  Want to share? Run with --publish")
+        print("  (project names and prompts are auto-sanitized)")
+        print()
 
 
 if __name__ == "__main__":

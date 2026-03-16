@@ -16,6 +16,12 @@ Analyzes Claude Code (and future: Codex, OpenCode) conversation transcripts to f
 - `wrapped.html` - Template for wrapped report (contains `__PLACEHOLDER__` markers)
 - `generate_prompt_coach.py` - Generates self-contained `dist/prompt_coach.html` with per-prompt analysis, anti-pattern detection, and personalized coaching tips
 - `prompt_coach.html` - Template for prompt coach report (contains `__PC_*__` markers)
+- `generate_user_profile.py` - Generates self-contained `dist/user_profile.html` with personality dimensions, archetype selection, and behavioral analysis (15 sections)
+- `user_profile.html` - Template for user profile report (contains `__UP_*__` markers)
+- `generate_soul.py` - Generates self-contained `dist/soul.html` deep personality profile with Big Five traits, narrative prose, and contradiction detection (imports `collect_data()` from `generate_user_profile.py`)
+- `soul.html` - Template for soul profile report (contains `__SOUL_*__` markers)
+- `generate_portrait.py` - Generates self-contained `dist/portrait.html` "How AI Sees You" personal character study as long-form prose (imports `collect_data()` from `generate_user_profile.py`)
+- `portrait.html` - Template for portrait report (contains `__PT_*__` markers)
 - `run_all.py` - Unified runner for all pattern scripts + findings generation
 - `tests/` - Test suite for core extraction logic
 - `reports/` - Generated Gemini analysis reports (gitignored)
@@ -45,11 +51,11 @@ python3 run_all.py --wrapped
 # Generate with custom config
 WRAPPED_AUTHOR="Your Name" WRAPPED_TZ_OFFSET=2 python3 generate_wrapped.py
 
-# Generate and auto-publish to entropy.buildingopen.org/entropy/<hash>
+# Generate local report only (default)
 WRAPPED_AUTHOR="Your Name" python3 generate_wrapped.py
 
-# Skip auto-publishing (local HTML only)
-WRAPPED_AUTHOR="Your Name" python3 generate_wrapped.py --no-publish
+# Generate and publish (auto-sanitized) to entropy.buildingopen.org/entropy/<hash>
+WRAPPED_AUTHOR="Your Name" python3 generate_wrapped.py --publish
 
 # Run tests
 python3 -m pytest tests/ -v
@@ -65,9 +71,14 @@ python3 -m pytest tests/ -v
 - `WRAPPED_TZ_OFFSET` - Hours from UTC for local time display (default: 0)
 - `WRAPPED_MONEY_PAID` - Total subscription cost in USD for ROI comparison (optional)
 - `WRAPPED_MONEY_DETAIL` - Description of subscription (e.g. "3 Claude Max accounts")
-- `WRAPPED_SANITIZE` - Set to `1` to anonymize project names, clear swear quotes and prompt examples (for public sharing)
+- `WRAPPED_SANITIZE` - Set to `1` to anonymize project names in local HTML
 - `WRAPPED_SHARE_URL` - Public URL for share buttons (auto-set when publishing)
 - `WRAPPED_SUPABASE_KEY` - Override anon key with service_role key (optional, project: cbhbfutssknfjvgvavnt)
+
+### Privacy model
+- **Local HTML** is always full (unsanitized) for your own viewing.
+- **Published HTML** (via `--publish`) is always auto-sanitized: project names, prompt examples, swear quotes, uncensored swear words, and machine names are stripped.
+- Publishing is opt-in. There is no way to publish raw HTML.
 
 ### Quick start (for other Claude Code users)
 ```bash
@@ -76,6 +87,15 @@ npx claude-entropy
 
 # Prompt coach report
 npx claude-entropy prompt-coach
+
+# User profile report
+npx claude-entropy user-profile
+
+# Soul deep personality profile
+npx claude-entropy soul
+
+# Portrait - "How AI Sees You"
+npx claude-entropy portrait
 
 # With options
 npx claude-entropy --author "Your Name" --tz 1
@@ -89,8 +109,8 @@ npx claude-entropy --sanitize
 # Prompt coach, sanitized
 npx claude-entropy prompt-coach --sanitize
 
-# Skip auto-publish (local only)
-npx claude-entropy --no-publish
+# Publish (auto-sanitized)
+npx claude-entropy --publish
 ```
 
 ### CLI options
@@ -98,8 +118,8 @@ npx claude-entropy --no-publish
 - `--tz HOURS` - UTC offset for local time (default: auto-detect)
 - `--money USD` - Total subscription cost for ROI slide
 - `--money-detail DESC` - Subscription description
-- `--sanitize` - Anonymize project names for sharing
-- `--no-publish` - Skip auto-publishing (local HTML only; default: auto-publish)
+- `--sanitize` - Anonymize project names in local HTML
+- `--publish` - Publish to entropy.buildingopen.org (auto-sanitized)
 
 ### Direct Python usage
 ```bash

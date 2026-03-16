@@ -105,6 +105,8 @@ if __name__ == "__main__":
                         help="Only run Gemini analysis")
     parser.add_argument("--wrapped", action="store_true",
                         help="Generate wrapped.html after patterns")
+    parser.add_argument("--soul", action="store_true",
+                        help="Generate soul.html personality profile")
     parser.add_argument("--pattern", type=str,
                         help="Run a specific pattern (e.g., 'self_scoring')")
     parser.add_argument("--mode", choices=["deep", "batch", "local"],
@@ -115,6 +117,14 @@ if __name__ == "__main__":
         print("\nGenerating wrapped.html...")
         result = subprocess.run(
             [sys.executable, str(SCRIPT_DIR / "generate_wrapped.py")],
+            timeout=600, cwd=str(SCRIPT_DIR),
+        )
+        sys.exit(result.returncode)
+
+    if args.soul:
+        print("\nGenerating soul.html...")
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT_DIR / "generate_soul.py")],
             timeout=600, cwd=str(SCRIPT_DIR),
         )
         sys.exit(result.returncode)

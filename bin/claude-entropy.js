@@ -6,22 +6,28 @@ const path = require('path');
 const os = require('os');
 
 const HELP = `
-Claude Code Entropy - Analyze your Claude Code usage
+Claude Code Entropy - Your AI coding story, visualized.
 
 Usage: npx claude-entropy [command] [options]
 
 Commands:
   wrapped              Spotify Wrapped-style stats report (default)
   prompt-coach         Prompt coaching report with per-prompt analysis
+  user-profile         Personality & character profile based on your usage
+  soul                 Deep personality profiler with narrative prose
+  portrait             "How AI Sees You" - personal character study in prose
 
 Options:
   --author NAME        Display name (default: git user.name)
   --tz HOURS           UTC offset for local time (default: auto-detect)
   --money USD          Total subscription cost for ROI slide
   --money-detail DESC  Subscription description
-  --sanitize           Anonymize project names for sharing
-  --no-publish         Skip auto-publishing (local HTML only)
+  --sanitize           Anonymize project names in local HTML
+  --publish            Publish to entropy.buildingopen.org (auto-sanitized)
   -h, --help           Show this help
+
+100% local analysis. Data never leaves your machine unless you --publish.
+Project names, prompts, and swear words are auto-stripped before publishing.
 
 Output: ./<report>.html (auto-opens in browser)
 `.trim();
@@ -35,7 +41,10 @@ function parseArgs(argv) {
       args.help = true;
     } else if (arg === '--sanitize') {
       args.sanitize = true;
+    } else if (arg === '--publish') {
+      args.publish = true;
     } else if (arg === '--no-publish') {
+      // deprecated, now the default - silently accept
       args.noPublish = true;
     } else if (arg === '--author' && i + 1 < argv.length) {
       args.author = argv[++i];
@@ -143,6 +152,9 @@ function main() {
   const SUBCOMMANDS = {
     'wrapped': { script: 'generate_wrapped.py', output: 'wrapped.html' },
     'prompt-coach': { script: 'generate_prompt_coach.py', output: 'prompt_coach.html' },
+    'user-profile': { script: 'generate_user_profile.py', output: 'user_profile.html' },
+    'soul': { script: 'generate_soul.py', output: 'soul.html' },
+    'portrait': { script: 'generate_portrait.py', output: 'portrait.html' },
   };
 
   if (!SUBCOMMANDS[subcommand]) {
@@ -153,15 +165,13 @@ function main() {
 
   const sub = SUBCOMMANDS[subcommand];
 
-  // Build python args - auto-publish by default (wrapped only)
+  // Build python args - publish is opt-in
   const pyArgs = [];
-  if (subcommand === 'wrapped' && !args.noPublish) pyArgs.push('--publish');
+  if (subcommand === 'wrapped' && args.publish) pyArgs.push('--publish');
 
   // Run the Python script from the package directory
   const scriptDir = path.join(__dirname, '..');
   const scriptPath = path.join(scriptDir, sub.script);
-
-  console.log('Analyzing your Claude Code sessions...\n');
 
   const result = spawnSync(pythonCmd, [scriptPath, ...pyArgs], {
     cwd: scriptDir,
@@ -186,8 +196,6 @@ function main() {
   if (path.resolve(src) !== path.resolve(dest)) {
     fs.copyFileSync(src, dest);
   }
-
-  console.log('\nOutput: ' + dest);
 
   // Open in browser
   try {

@@ -1,3 +1,6 @@
+import html as html_mod
+import os
+import re
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -7,7 +10,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from generate_wrapped import (
     fmt_number, fmt_compact, hour_label, censor_word,
     compute_aggregates, compute_rules, compute_archetype, get_proj_dir_name,
-    compute_percentile, compute_percentiles,
+    compute_percentile, compute_percentiles, generate_html,
+    sanitize_html_for_publish, verify_sanitization,
+    collect_data,
 )
 
 
@@ -378,8 +383,8 @@ class TestComputePercentile:
         assert 30 <= p <= 45
 
     def test_high_tokens(self):
-        # 10B tokens: between p95=5B and p99=15B
-        p = compute_percentile(10e9, "tokens")
+        # 10B tokens/mo: between p95=1.5B and p99=5B
+        p = compute_percentile(3e9, "tokens_monthly")
         assert 95 <= p <= 99
 
     def test_success_pct(self):
@@ -443,3 +448,376 @@ class TestComputePercentiles:
         }
         pcts = compute_percentiles(d)
         assert pcts["sessions"] == 75
+
+    def test_monthly_normalization_fairness(self):
+        """Same usage rate over 1 month vs 3 months should give similar percentiles."""
+        base = {"hours": 0, "success_pct": 70}
+
+        d_1mo = {**base, "days": 30, "sessions": 50, "loc": 5000,
+                 "total_tokens": 150e6, "total_cost": 150, "deployments": 30}
+        d_3mo = {**base, "days": 90, "sessions": 150, "loc": 15000,
+                 "total_tokens": 450e6, "total_cost": 450, "deployments": 90}
+
+        pcts_1 = compute_percentiles(d_1mo)
+        pcts_3 = compute_percentiles(d_3mo)
+
+        # All time-dependent metrics should produce identical percentiles
+        for key in ("sessions", "loc", "tokens", "cost", "deployments"):
+            assert pcts_1[key] == pcts_3[key], f"{key}: 1mo={pcts_1[key]} vs 3mo={pcts_3[key]}"
+
+    def test_loc_normalized_not_raw(self):
+        """LOC is now monthly-normalized. 30K LOC over 3 months = 10K/mo, not 30K raw."""
+        d = {
+            "days": 90, "sessions": 0, "hours": 0, "loc": 30000,
+            "total_tokens": 0, "total_cost": 0, "success_pct": 0,
+            "deployments": 0,
+        }
+        pcts = compute_percentiles(d)
+        # 10K/mo is between p75=5000 and p90=15000
+        assert 75 <= pcts["loc"] <= 90
+
+
+class TestPercentileDisclaimer:
+    """Test that disclaimer text appears in generated HTML."""
+
+    def _make_minimal_data(self):
+        """Return a minimal data dict suitable for generate_html."""
+        from datetime import datetime
+        from collections import Counter
+        return {
+            "sessions": 500, "days": 90, "start_date": datetime(2025, 1, 1),
+            "end_date": datetime(2025, 3, 31), "hours": 2000, "hours_days": 83,
+            "longest_session_hours": 12, "longest_session_days": 0.5,
+            "loc": 100000, "loc_added": 80000, "loc_removed": 20000,
+            "files_edited_count": 500, "commits": 300, "deployments": 100,
+            "bash_commands": 5000, "commits_per_deploy": 3, "abandoned_count": 10,
+            "session_categories": Counter({"BUILD": 200, "FIX": 150, "EXPLORE": 150}),
+            "top_projects": [("Project A", 200)], "median_words": 15,
+            "pct_short": 30, "short_prompt_errors": 5, "long_prompt_errors": 3,
+            "error_ratio": "1.7x", "error_ratio_text": "1.7x more errors when terse",
+            "prompt_examples": ["fix it"], "total_tokens": 10_000_000_000,
+            "tokens_display": 10.0, "tokens_suffix": "B",
+            "tokens_reading_comparison": "5 years of reading",
+            "total_messages": 10000, "total_cost": 5000,
+            "total_errors": 500, "error_categories": Counter({"COMMAND_FAILED": 300, "EDIT_FAILED": 200}),
+            "error_files_count": 100, "switch_rate": 15, "switched_pct": 15,
+            "retried_pct": 60, "gave_up_pct": 25, "wasted_tokens": 50_000_000,
+            "wasted_tokens_m": 50, "loop_count": 100, "sessions_with_loops": 50,
+            "worst_loop": '"Edit" 8 times in a row', "wasted_cost": 100,
+            "avg_score": 8.5, "median_score": 9, "pct_perfect": 40,
+            "total_scores": 200, "bugs_after_high": 15,
+            "success_pct": 76, "full_success_pct": 60, "partial_success_pct": 16,
+            "misuse_total": 50, "misuse_top": [("grep via Bash", 30)],
+            "niceness_score": 5.2, "user_nice_total": 200, "user_harsh_total": 50,
+            "user_swears_total": 20, "assistant_nice_total": 1000,
+            "assistant_swears_total": 5, "please_count": 100,
+            "nice_to_harsh": "4.0x", "claude_nice_ratio": 5.0,
+            "top_swears": [("damn", 10)], "swears_by_hour": [0]*24,
+            "nice_by_hour": [0]*24, "swear_peak_hour": 22, "swear_peak_count": 5,
+            "nice_peak_hour": 10, "nice_peak_count": 20,
+            "swear_example_quote": "", "total_user_msgs": 5000, "swear_pct": 0.4,
+            "machine_counts": Counter({"AX41": 300, "Mac": 200}),
+            "short_prompt_success_pct": 70, "long_prompt_success_pct": 80,
+        }
+
+    def test_overall_disclaimer_present(self):
+        d = self._make_minimal_data()
+        rules = [("Rule 1", "Desc 1"), ("Rule 2", "Desc 2"), ("Rule 3", "Desc 3")]
+        pcts = compute_percentiles(d)
+        archetype = compute_archetype(d, pcts)
+        html = generate_html(d, rules, archetype, pcts)
+        assert "percentile-disclaimer" in html
+        assert "Estimated from community benchmarks" in html
+
+    def test_badge_has_asterisk_and_tooltip(self):
+        d = self._make_minimal_data()
+        rules = [("Rule 1", "Desc 1"), ("Rule 2", "Desc 2"), ("Rule 3", "Desc 3")]
+        pcts = compute_percentiles(d)
+        archetype = compute_archetype(d, pcts)
+        html = generate_html(d, rules, archetype, pcts)
+        # At least one badge should have asterisk and tooltip
+        assert 'title="Estimated from community benchmarks"' in html
+        assert "%*</span>" in html
+
+
+class TestSanitizeHtmlForPublish:
+    """Test HTML sanitization for public sharing."""
+
+    def test_project_names_replaced(self):
+        html = '<span class="bar-label">MySecret</span><span class="bar-label">AnotherProj</span>'
+        sanitized, counts = sanitize_html_for_publish(html)
+        assert "MySecret" not in sanitized
+        assert "AnotherProj" not in sanitized
+        assert 'Project 1' in sanitized
+        assert 'Project 2' in sanitized
+        assert counts["projects"] == 2
+
+    def test_sessions_on_text_sanitized(self):
+        html = '<div>42 sessions on MySecret</div>'
+        sanitized, _ = sanitize_html_for_publish(html)
+        assert "MySecret" not in sanitized
+        assert "sessions on Project 1" in sanitized
+
+    def test_prompt_examples_stripped(self):
+        html = '''<div class="fade-up prompt-examples">
+            <span class="prompt-example">&quot;fix it&quot;</span>
+            <span class="prompt-example">&quot;run tests&quot;</span>
+        </div>'''
+        sanitized, counts = sanitize_html_for_publish(html)
+        assert '<span class="prompt-example">' not in sanitized
+        assert counts["prompts"] == 2
+
+    def test_prompt_strip_robust_with_nested_content(self):
+        """Prompt stripping works even if there's extra markup inside."""
+        html = '<span class="prompt-example">&quot;hello world&quot;</span>'
+        sanitized, counts = sanitize_html_for_publish(html)
+        assert "hello world" not in sanitized
+        assert counts["prompts"] == 1
+
+    def test_swear_quote_removed(self):
+        html = '<div class="fade-up label-detail">"Why the hell is this broken"</div>'
+        sanitized, counts = sanitize_html_for_publish(html)
+        assert "hell is this broken" not in sanitized
+        assert counts["swear_quote"] == 1
+
+    def test_swear_quote_no_match_without_quotes(self):
+        html = '<div class="fade-up label-detail">Some normal text</div>'
+        sanitized, counts = sanitize_html_for_publish(html)
+        assert "Some normal text" in sanitized
+        assert counts["swear_quote"] == 0
+
+    def test_swear_pills_stripped(self):
+        html = '''<div class="fade-up swear-pills">
+            <div class="swear-pill"><span class="censored">f**k</span><span class="uncensored">fuck</span><span class="swear-count">42x</span></div>
+        </div>'''
+        sanitized, counts = sanitize_html_for_publish(html)
+        assert "f**k" not in sanitized
+        assert "fuck" not in sanitized
+        assert "42x" not in sanitized
+        assert '<div class="swear-pill">' not in sanitized
+        assert counts["swear_words"] == 1
+
+    def _wrap_split_container(self, inner):
+        """Wrap machine spans in the split labels container div."""
+        return f'<div style="display:flex; gap:2rem; margin-top:0.5rem; font-size:0.7rem; color:var(--text-muted);">{inner}</div>'
+
+    def test_machine_names_replaced(self):
+        html = self._wrap_split_container('<span>300 AX41</span><span>112 Mac</span>')
+        sanitized, counts = sanitize_html_for_publish(html)
+        import re
+        assert re.search(r'<span>\d+ AX41</span>', sanitized) is None
+        assert re.search(r'<span>\d+ Mac</span>', sanitized) is None
+        assert "Machine 1" in sanitized
+        assert "Machine 2" in sanitized
+        assert counts["machines"] == 2
+
+    def test_known_machine_names(self):
+        for name in ["AX41", "Mac", "Linux", "Other", "Windows", "WSL", "Docker"]:
+            html = self._wrap_split_container(f'<span>10 {name}</span>')
+            sanitized, counts = sanitize_html_for_publish(html)
+            assert f'<span>10 {name}</span>' not in sanitized
+            assert counts["machines"] == 1
+
+    def test_machine_regex_scoped_to_container(self):
+        """Machine regex should NOT match spans outside the split container."""
+        html = '<span>10 AX41</span>'  # No container
+        sanitized, counts = sanitize_html_for_publish(html)
+        assert "AX41" in sanitized  # Left untouched
+        assert counts["machines"] == 0
+
+    def test_machine_regex_skips_long_unknown_words(self):
+        """Machine regex shouldn't match random long words even in container."""
+        html = self._wrap_split_container('<span>10 SomethingVeryLongAndUnlikely</span>')
+        sanitized, counts = sanitize_html_for_publish(html)
+        # All words in the container are replaced (no length filter since scoped)
+        # The regex now replaces all <span>N Word</span> inside the container
+        assert counts["machines"] == 1
+
+    def test_html_escaped_project_name_stripped(self):
+        """Project names with special chars are HTML-escaped, sanitizer still strips them."""
+        html = '<span class="bar-label">My&amp;Project</span>'
+        sanitized, counts = sanitize_html_for_publish(html)
+        assert "My&amp;Project" not in sanitized
+        assert "Project 1" in sanitized
+        assert counts["projects"] == 1
+
+    def test_html_escaped_prompt_stripped(self):
+        """Prompt examples with special chars are HTML-escaped, sanitizer still strips them."""
+        html = '<span class="prompt-example">&quot;fix &lt;div&gt;&quot;</span>'
+        sanitized, counts = sanitize_html_for_publish(html)
+        assert "fix" not in sanitized
+        assert counts["prompts"] == 1
+
+    def test_empty_html(self):
+        sanitized, counts = sanitize_html_for_publish("")
+        assert sanitized == ""
+        assert all(v == 0 for v in counts.values())
+
+    def test_idempotent(self):
+        """Running sanitization twice produces the same result."""
+        html = '<span class="bar-label">Proj</span>\n'
+        html += '<span class="prompt-example">&quot;hi&quot;</span>\n'
+        html += self._wrap_split_container('<span>5 Mac</span>')
+        first, _ = sanitize_html_for_publish(html)
+        second, _ = sanitize_html_for_publish(first)
+        assert first == second
+
+    def test_full_realistic_html(self):
+        """Test with HTML matching real template patterns."""
+        html = '''
+<span class="bar-label">OpenPaper</span>
+<span class="bar-label">Rocketlist</span>
+<div>42 sessions on OpenPaper</div>
+<div class="fade-up prompt-examples">
+  <span class="prompt-example">&quot;fix it&quot;</span>
+  <span class="prompt-example">&quot;run tests&quot;</span>
+</div>
+<div class="fade-up label-detail">"Why the hell"</div>
+<div class="fade-up swear-pills">
+  <div class="swear-pill"><span class="censored">f**k</span><span class="uncensored">fuck</span><span class="swear-count">42x</span></div>
+  <div class="swear-pill"><span class="censored">sh*t</span><span class="uncensored">shit</span><span class="swear-count">10x</span></div>
+</div>
+<div style="display:flex; gap:2rem; margin-top:0.5rem; font-size:0.7rem; color:var(--text-muted);">
+  <span>300 AX41</span>
+  <span>112 Mac</span>
+</div>'''
+        sanitized, counts = sanitize_html_for_publish(html)
+        # Nothing private survives
+        for private in ["OpenPaper", "Rocketlist", "fix it", "run tests",
+                        "hell", "f**k", "fuck", "sh*t", "shit"]:
+            assert private not in sanitized, f"'{private}' leaked!"
+        assert counts["projects"] == 2
+        assert counts["prompts"] == 2
+        assert counts["swear_quote"] == 1
+        assert counts["swear_words"] == 2
+        assert counts["machines"] == 2
+
+
+class TestVerifySanitization:
+    """Test the defense-in-depth verification function."""
+
+    def test_clean_html_passes(self):
+        html = '<span class="bar-label">Project 1</span><span>5 Machine 1</span>'
+        leaks = verify_sanitization(html, ["RealProject"], ["AX41"])
+        assert leaks == []
+
+    def test_project_name_leak_detected(self):
+        html = '<span class="bar-label">RealProject</span>'
+        leaks = verify_sanitization(html, ["RealProject"], [])
+        assert len(leaks) == 1
+        assert "RealProject" in leaks[0]
+
+    def test_machine_name_leak_detected(self):
+        html = '<span>5 AX41</span>'
+        leaks = verify_sanitization(html, [], ["AX41"])
+        assert len(leaks) == 1
+        assert "AX41" in leaks[0]
+
+    def test_prompt_example_leak_detected(self):
+        html = '<span class="prompt-example">&quot;fix it&quot;</span>'
+        leaks = verify_sanitization(html, [], [], prompt_examples=["fix it"])
+        assert len(leaks) >= 1
+
+    def test_swear_quote_leak_detected(self):
+        html = '<div class="fade-up label-detail">"Why the hell is this broken"</div>'
+        leaks = verify_sanitization(html, [], [], swear_quote="Why the hell is this broken")
+        assert any("swear quote" in l for l in leaks)
+
+    def test_swear_quote_clean_passes(self):
+        html = '<div class="fade-up label-detail"></div>'
+        leaks = verify_sanitization(html, [], [], swear_quote="Why the hell")
+        assert not any("swear quote" in l for l in leaks)
+
+    def test_project_name_context_aware(self):
+        """Common words like 'art' shouldn't false-positive from 'chart'."""
+        html = '<span class="bar-label">Project 1</span> chart display'
+        leaks = verify_sanitization(html, ["art"], [])
+        assert leaks == []
+
+    def test_html_escaped_project_name_detected(self):
+        """Project names with special chars are HTML-escaped but still caught."""
+        html = '<span class="bar-label">My&amp;Project</span>'
+        leaks = verify_sanitization(html, ["My&Project"], [])
+        assert len(leaks) == 1
+
+    def test_uncensored_span_detected(self):
+        html = '<span class="uncensored">word</span>'
+        leaks = verify_sanitization(html, [], [])
+        assert any("uncensored" in l for l in leaks)
+
+    def test_censored_span_detected(self):
+        html = '<span class="censored">w**d</span>'
+        leaks = verify_sanitization(html, [], [])
+        assert any("censored" in l for l in leaks)
+
+    def test_multiple_leaks_all_reported(self):
+        html = '<span class="bar-label">Proj1</span><span>5 AX41</span><span class="uncensored">x</span>'
+        leaks = verify_sanitization(html, ["Proj1"], ["AX41"])
+        assert len(leaks) == 3  # project + machine + uncensored
+
+    def test_empty_names_no_false_positives(self):
+        html = '<span class="bar-label">Project 1</span>'
+        leaks = verify_sanitization(html, [], [])
+        assert leaks == []
+
+
+import pytest
+
+class TestIntegrationSanitizePipeline:
+    """Integration test: full pipeline -> sanitize -> verify no leaks."""
+
+    @pytest.fixture(autouse=True)
+    def _check_session_data(self):
+        """Skip if no Claude Code session data available."""
+        data_dir = os.environ.get("CLAUDE_PROJECTS_DIR", os.path.expanduser("~/.claude/projects"))
+        dirs = data_dir.split(":")
+        if not any(os.path.isdir(d.strip()) for d in dirs):
+            pytest.skip("No Claude Code session data available")
+
+    def test_full_pipeline_sanitization(self):
+        """Run collect -> aggregate -> generate -> sanitize -> verify end-to-end."""
+        data = collect_data()
+        if data["session_count"] == 0:
+            pytest.skip("No sessions found")
+
+        d = compute_aggregates(data)
+        rules = compute_rules(d)
+        percentiles = compute_percentiles(d)
+        archetype = compute_archetype(d, percentiles)
+        html = generate_html(d, rules, archetype, percentiles)
+
+        # Collect private data that should be stripped
+        project_names = [name for name, _ in d.get("top_projects", [])]
+        machine_names = list(d.get("machine_counts", {}).keys())
+        prompt_examples = d.get("prompt_examples", [])
+        swear_quote = d.get("swear_example_quote", "")
+
+        # Sanitize
+        sanitized, counts = sanitize_html_for_publish(html)
+
+        # Verify no private data survives
+        leaks = verify_sanitization(sanitized, project_names, machine_names,
+                                    prompt_examples=prompt_examples, swear_quote=swear_quote)
+        assert leaks == [], f"Sanitization leaks: {leaks}"
+
+        # Verify structural assertions
+        assert '<span class="prompt-example">' not in sanitized
+        assert '<span class="uncensored">' not in sanitized
+        assert '<span class="censored">' not in sanitized
+        assert '<div class="swear-pill">' not in sanitized
+
+        # Verify functional HTML survived
+        assert 'IntersectionObserver' in sanitized
+        assert 'scroll-snap' in sanitized
+
+        # Verify project labels are generic
+        if project_names:
+            assert 'bar-label">Project 1' in sanitized
+
+        # Verify machine labels are generic (if any machines exist)
+        if machine_names:
+            assert re.search(r'<span>\d+ Machine 1</span>', sanitized)
+
+        # Verify idempotent
+        second, _ = sanitize_html_for_publish(sanitized)
+        assert sanitized == second

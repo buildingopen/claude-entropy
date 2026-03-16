@@ -1,5 +1,7 @@
 __pycache__/
 *.pyc
+*.png
+*.tgz
 patterns/*.md
 CLAUDE.md
 FINDINGS.md
@@ -8,7 +10,6 @@ dist/
 reports/
 screenshots/
 tests/
-*.tgz
 .gitignore
 .git/
 requirements.txt

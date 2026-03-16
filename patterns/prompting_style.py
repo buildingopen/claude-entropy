@@ -43,6 +43,13 @@ STOPWORDS = {
     "let's", "how's", "where's", "when's", "why's", "much", "many", "well",
     "back", "even", "give", "go", "going", "good", "keep", "know", "look",
     "put", "say", "said", "take", "tell", "think", "want", "way", "work",
+    # Domain-specific: coding-session noise words that tell nothing about style
+    "claude", "code", "file", "error", "add", "update", "create", "run",
+    "test", "check", "set", "sure", "use", "make", "need", "get", "fix",
+    "change", "try", "also", "like", "just", "now", "new", "one", "thing",
+    "see", "let", "please", "thanks", "hi", "hey", "yes", "no", "ok", "okay",
+    # System vocabulary: model/tool names and generic terms
+    "gemini", "user", "project", "output",
 }
 
 # ── Frustration signal patterns ───────────────────────────────────────────────

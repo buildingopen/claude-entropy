@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt Coach - Claude Code Entropy</title>
+<meta name="description" content="Prompt coaching report: __PC_SESSION_COUNT__ sessions, __PC_PROMPT_COUNT__ prompts analyzed. Score: __PC_SCORE_TOTAL__/100.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #FFFFFF; transition: background-color 0.3s, color 0.3s; }
+
+/* Shared report CSS framework */
+.report { max-width: 860px; margin: 0 auto; padding: 40px 32px; font-family: Inter, system-ui, -apple-system, sans-serif; color: #111827; line-height: 1.6; }
+.report-header { border-bottom: 2px solid #E5E7EB; padding-bottom: 24px; margin-bottom: 32px; position: relative; }
+.report-title { font-size: 28px; font-weight: 700; }
+.report-subtitle { font-size: 14px; color: #6B7280; }
+.metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin: 24px 0; }
+.metric-card { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; text-align: center; }
+.metric-value { font-size: 32px; font-weight: 700; color: #2563EB; }
+.metric-label { font-size: 13px; color: #6B7280; margin-top: 4px; }
+.section { margin-bottom: 40px; }
+.section-title { font-size: 20px; font-weight: 600; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px; margin-bottom: 16px; }
+.chart-box { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; margin: 16px 0; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { text-align: left; font-size: 12px; text-transform: uppercase; color: #6B7280; padding: 8px; border-bottom: 2px solid #E5E7EB; }
+.data-table td { padding: 8px; border-bottom: 1px solid #F3F4F6; }
+.callout { background: #EFF6FF; border-radius: 8px; padding: 16px 20px; margin: 12px 0; font-size: 14px; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+.badge-success { background: #DCFCE7; color: #166534; }
+.badge-warning { background: #FEF3C7; color: #92400E; }
+.badge-danger { background: #FEE2E2; color: #991B1B; }
+.pill { display: inline-block; background: #F3F4F6; border-radius: 16px; padding: 4px 12px; font-size: 13px; margin: 2px; }
+.report-footer { text-align: center; color: #9CA3AF; font-size: 12px; padding-top: 32px; border-top: 1px solid #E5E7EB; margin-top: 48px; }
+
+/* PDF button */
+.pdf-btn { position: absolute; top: 0; right: 0; background: #2563EB; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.pdf-btn:hover { background: #1D4ED8; }
+
+/* Score display */
+.score-hero { display: flex; align-items: center; gap: 24px; margin-bottom: 24px; }
+.score-circle { width: 100px; height: 100px; border-radius: 50%; border: 4px solid #2563EB; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.score-number { font-size: 36px; font-weight: 700; color: #2563EB; }
+.score-meta { flex: 1; }
+.grade-badge { display: inline-block; font-weight: 700; font-size: 18px; padding: 4px 16px; border-radius: 999px; background: #DBEAFE; color: #1D4ED8; }
+
+/* Horizontal bar for dimensions */
+.dim-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.dim-bar-label { width: 100px; font-size: 13px; font-weight: 500; text-align: right; flex-shrink: 0; }
+.dim-bar-track { flex: 1; height: 24px; background: #F3F4F6; border-radius: 4px; position: relative; overflow: hidden; }
+.dim-bar-fill { height: 100%; border-radius: 4px; background: #2563EB; }
+.dim-bar-value { width: 36px; font-size: 13px; font-weight: 600; color: #2563EB; flex-shrink: 0; }
+
+/* Context signal cards */
+.ctx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ctx-card { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 16px; }
+.ctx-label { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.ctx-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+.ctx-with { color: #16A34A; }
+.ctx-without { color: #6B7280; }
+.ctx-count { color: #9CA3AF; font-size: 12px; }
+.ctx-delta { font-weight: 600; font-size: 15px; margin-top: 8px; }
+.ctx-delta.positive { color: #16A34A; }
+.ctx-delta.negative { color: #DC2626; }
+.ctx-delta.neutral { color: #6B7280; }
+
+/* Before/After pairs */
+.ba-pair { margin-bottom: 20px; }
+.ba-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #6B7280; margin-bottom: 8px; }
+.ba-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ba-card { border-radius: 8px; padding: 16px; }
+.ba-before { background: #FEF2F2; border: 1px solid #FECACA; }
+.ba-after { background: #F0FDF4; border: 1px solid #BBF7D0; }
+.ba-header { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.ba-before .ba-header { color: #DC2626; }
+.ba-after .ba-header { color: #16A34A; }
+.ba-text { font-size: 13px; color: #374151; line-height: 1.5; word-break: break-word; }
+.ba-meta { font-size: 12px; color: #9CA3AF; margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB; }
+.ba-empty { color: #9CA3AF; font-style: italic; padding: 24px; text-align: center; }
+
+/* Anti-patterns */
+.ap-item { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+.ap-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.ap-name { font-weight: 600; font-size: 14px; }
+.ap-count { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #FEF3C7; color: #92400E; }
+.ap-tip { font-size: 13px; color: #374151; margin-bottom: 4px; }
+.ap-impact { font-size: 12px; color: #6B7280; }
+.ap-impact.positive { color: #16A34A; }
+.ap-empty { color: #9CA3AF; font-style: italic; padding: 24px; text-align: center; }
+
+/* Recipes */
+.recipe-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.recipe-card { background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 16px; }
+.recipe-label { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.recipe-rate { font-size: 24px; font-weight: 700; color: #16A34A; }
+.recipe-delta { font-size: 13px; color: #16A34A; margin-top: 4px; }
+.recipe-count { font-size: 12px; color: #6B7280; margin-top: 4px; }
+.recipe-empty { color: #9CA3AF; font-style: italic; padding: 24px; text-align: center; }
+
+/* Tips */
+.tip-item { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid #F3F4F6; }
+.tip-item:last-child { border-bottom: none; }
+.tip-number { font-size: 24px; font-weight: 700; color: #2563EB; min-width: 32px; }
+.tip-text { font-size: 14px; line-height: 1.6; color: #111827; }
+.tip-source { font-size: 12px; color: #6B7280; margin-top: 4px; }
+
+/* Trend */
+.trend-label { display: inline-block; font-weight: 600; font-size: 14px; padding: 4px 12px; border-radius: 999px; }
+.trend-label.positive { background: #DCFCE7; color: #166534; }
+.trend-label.negative { background: #FEE2E2; color: #991B1B; }
+.trend-label.neutral { background: #F3F4F6; color: #6B7280; }
+
+/* Sweet spot */
+.sweet-spot-hero { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+.sweet-spot-range { font-size: 28px; font-weight: 700; color: #2563EB; }
+.sweet-spot-delta { font-size: 16px; color: #16A34A; font-weight: 600; }
+
+/* Dark mode toggle */
+.theme-toggle { position: absolute; top: 0; right: 120px; background: none; border: 1px solid #E5E7EB; border-radius: 6px; padding: 6px 10px; font-size: 16px; cursor: pointer; line-height: 1; }
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme="light"]) { background: #0F172A; }
+  body:not([data-theme="light"]) .report { color: #E2E8F0; }
+  body:not([data-theme="light"]) .report-header { border-color: #334155; }
+  body:not([data-theme="light"]) .report-subtitle { color: #94A3B8; }
+  body:not([data-theme="light"]) .metric-card { background: #1E293B; border-color: #334155; }
+  body:not([data-theme="light"]) .metric-value { color: #3B82F6; }
+  body:not([data-theme="light"]) .metric-label { color: #94A3B8; }
+  body:not([data-theme="light"]) .section-title { border-color: #334155; }
+  body:not([data-theme="light"]) .chart-box { background: #1E293B; border-color: #334155; }
+  body:not([data-theme="light"]) .data-table th { color: #94A3B8; border-color: #334155; }
+  body:not([data-theme="light"]) .data-table td { border-color: #1E293B; }
+  body:not([data-theme="light"]) .callout { background: #172554; color: #CBD5E1; }
+  body:not([data-theme="light"]) .badge-success { background: #052E16; color: #4ADE80; }
+  body:not([data-theme="light"]) .badge-warning { background: #422006; color: #FBBF24; }
+  body:not([data-theme="light"]) .badge-danger { background: #450A0A; color: #FCA5A5; }
+  body:not([data-theme="light"]) .pill { background: #334155; color: #CBD5E1; }
+  body:not([data-theme="light"]) .report-footer { color: #64748B; border-color: #334155; }
+  body:not([data-theme="light"]) .pdf-btn { background: #3B82F6; }
+  body:not([data-theme="light"]) .pdf-btn:hover { background: #2563EB; }
+  body:not([data-theme="light"]) .score-circle { border-color: #3B82F6; }
+  body:not([data-theme="light"]) .score-number { color: #3B82F6; }
+  body:not([data-theme="light"]) .grade-badge { background: #1E3A5F; color: #60A5FA; }
+  body:not([data-theme="light"]) .dim-bar-track { background: #334155; }
+  body:not([data-theme="light"]) .dim-bar-value { color: #3B82F6; }
+  body:not([data-theme="light"]) .ctx-card { background: #1E293B; border-color: #334155; }
+  body:not([data-theme="light"]) .ctx-with { color: #4ADE80; }
+  body:not([data-theme="light"]) .ctx-without { color: #94A3B8; }
+  body:not([data-theme="light"]) .ctx-count { color: #64748B; }
+  body:not([data-theme="light"]) .ctx-delta.positive { color: #4ADE80; }
+  body:not([data-theme="light"]) .ctx-delta.negative { color: #F87171; }
+  body:not([data-theme="light"]) .ctx-delta.neutral { color: #94A3B8; }
+  body:not([data-theme="light"]) .ba-before { background: #450A0A; border-color: #7F1D1D; }
+  body:not([data-theme="light"]) .ba-after { background: #052E16; border-color: #166534; }
+  body:not([data-theme="light"]) .ba-before .ba-header { color: #FCA5A5; }
+  body:not([data-theme="light"]) .ba-after .ba-header { color: #4ADE80; }
+  body:not([data-theme="light"]) .ba-text { color: #CBD5E1; }
+  body:not([data-theme="light"]) .ba-meta { color: #64748B; border-color: #334155; }
+  body:not([data-theme="light"]) .ba-empty { color: #64748B; }
+  body:not([data-theme="light"]) .ba-label { color: #94A3B8; }
+  body:not([data-theme="light"]) .ap-item { background: #422006; border-color: #78350F; }
+  body:not([data-theme="light"]) .ap-name { color: #FBBF24; }
+  body:not([data-theme="light"]) .ap-count { background: #78350F; color: #FBBF24; }
+  body:not([data-theme="light"]) .ap-tip { color: #CBD5E1; }
+  body:not([data-theme="light"]) .ap-impact { color: #94A3B8; }
+  body:not([data-theme="light"]) .ap-empty { color: #64748B; }
+  body:not([data-theme="light"]) .recipe-card { background: #052E16; border-color: #166534; }
+  body:not([data-theme="light"]) .recipe-rate { color: #4ADE80; }
+  body:not([data-theme="light"]) .recipe-delta { color: #4ADE80; }
+  body:not([data-theme="light"]) .recipe-count { color: #94A3B8; }
+  body:not([data-theme="light"]) .recipe-label { color: #E2E8F0; }
+  body:not([data-theme="light"]) .recipe-empty { color: #64748B; }
+  body:not([data-theme="light"]) .tip-number { color: #3B82F6; }
+  body:not([data-theme="light"]) .tip-text { color: #E2E8F0; }
+  body:not([data-theme="light"]) .tip-source { color: #64748B; }
+  body:not([data-theme="light"]) .tip-item { border-color: #1E293B; }
+  body:not([data-theme="light"]) .trend-label.positive { background: #052E16; color: #4ADE80; }
+  body:not([data-theme="light"]) .trend-label.negative { background: #450A0A; color: #FCA5A5; }
+  body:not([data-theme="light"]) .trend-label.neutral { background: #334155; color: #94A3B8; }
+  body:not([data-theme="light"]) .sweet-spot-range { color: #3B82F6; }
+  body:not([data-theme="light"]) .sweet-spot-delta { color: #4ADE80; }
+  body:not([data-theme="light"]) .theme-toggle { border-color: #334155; color: #E2E8F0; }
+  /* Override inline styles on descriptive paragraphs */
+  body:not([data-theme="light"]) [style*="color:#6B7280"] { color: #94A3B8 !important; }
+  body:not([data-theme="light"]) [style*="color:#374151"] { color: #CBD5E1 !important; }
+  body:not([data-theme="light"]) [style*="color:#9CA3AF"] { color: #64748B !important; }
+  body:not([data-theme="light"]) [style*="color:#111827"] { color: #E2E8F0 !important; }
+}
+/* Explicit dark override */
+body[data-theme="dark"] { background: #0F172A; }
+body[data-theme="dark"] .report { color: #E2E8F0; }
+body[data-theme="dark"] .report-header { border-color: #334155; }
+body[data-theme="dark"] .report-subtitle { color: #94A3B8; }
+body[data-theme="dark"] .metric-card { background: #1E293B; border-color: #334155; }
+body[data-theme="dark"] .metric-value { color: #3B82F6; }
+body[data-theme="dark"] .metric-label { color: #94A3B8; }
+body[data-theme="dark"] .section-title { border-color: #334155; }
+body[data-theme="dark"] .chart-box { background: #1E293B; border-color: #334155; }
+body[data-theme="dark"] .data-table th { color: #94A3B8; border-color: #334155; }
+body[data-theme="dark"] .data-table td { border-color: #1E293B; }
+body[data-theme="dark"] .callout { background: #172554; color: #CBD5E1; }
+body[data-theme="dark"] .badge-success { background: #052E16; color: #4ADE80; }
+body[data-theme="dark"] .badge-warning { background: #422006; color: #FBBF24; }
+body[data-theme="dark"] .badge-danger { background: #450A0A; color: #FCA5A5; }
+body[data-theme="dark"] .pill { background: #334155; color: #CBD5E1; }
+body[data-theme="dark"] .report-footer { color: #64748B; border-color: #334155; }
+body[data-theme="dark"] .pdf-btn { background: #3B82F6; }
+body[data-theme="dark"] .score-circle { border-color: #3B82F6; }
+body[data-theme="dark"] .score-number { color: #3B82F6; }
+body[data-theme="dark"] .grade-badge { background: #1E3A5F; color: #60A5FA; }
+body[data-theme="dark"] .dim-bar-track { background: #334155; }
+body[data-theme="dark"] .dim-bar-value { color: #3B82F6; }
+body[data-theme="dark"] .ctx-card { background: #1E293B; border-color: #334155; }
+body[data-theme="dark"] .ctx-with { color: #4ADE80; }
+body[data-theme="dark"] .ctx-without { color: #94A3B8; }
+body[data-theme="dark"] .ctx-count { color: #64748B; }
+body[data-theme="dark"] .ctx-delta.positive { color: #4ADE80; }
+body[data-theme="dark"] .ctx-delta.negative { color: #F87171; }
+body[data-theme="dark"] .ctx-delta.neutral { color: #94A3B8; }
+body[data-theme="dark"] .ba-before { background: #450A0A; border-color: #7F1D1D; }
+body[data-theme="dark"] .ba-after { background: #052E16; border-color: #166534; }
+body[data-theme="dark"] .ba-before .ba-header { color: #FCA5A5; }
+body[data-theme="dark"] .ba-after .ba-header { color: #4ADE80; }
+body[data-theme="dark"] .ba-text { color: #CBD5E1; }
+body[data-theme="dark"] .ba-meta { color: #64748B; border-color: #334155; }
+body[data-theme="dark"] .ba-empty { color: #64748B; }
+body[data-theme="dark"] .ba-label { color: #94A3B8; }
+body[data-theme="dark"] .ap-item { background: #422006; border-color: #78350F; }
+body[data-theme="dark"] .ap-name { color: #FBBF24; }
+body[data-theme="dark"] .ap-count { background: #78350F; color: #FBBF24; }
+body[data-theme="dark"] .ap-tip { color: #CBD5E1; }
+body[data-theme="dark"] .ap-impact { color: #94A3B8; }
+body[data-theme="dark"] .recipe-card { background: #052E16; border-color: #166534; }
+body[data-theme="dark"] .recipe-rate { color: #4ADE80; }
+body[data-theme="dark"] .recipe-delta { color: #4ADE80; }
+body[data-theme="dark"] .recipe-count { color: #94A3B8; }
+body[data-theme="dark"] .recipe-label { color: #E2E8F0; }
+body[data-theme="dark"] .tip-number { color: #3B82F6; }
+body[data-theme="dark"] .tip-text { color: #E2E8F0; }
+body[data-theme="dark"] .tip-source { color: #64748B; }
+body[data-theme="dark"] .tip-item { border-color: #1E293B; }
+body[data-theme="dark"] .trend-label.positive { background: #052E16; color: #4ADE80; }
+body[data-theme="dark"] .trend-label.negative { background: #450A0A; color: #FCA5A5; }
+body[data-theme="dark"] .trend-label.neutral { background: #334155; color: #94A3B8; }
+body[data-theme="dark"] .sweet-spot-range { color: #3B82F6; }
+body[data-theme="dark"] .sweet-spot-delta { color: #4ADE80; }
+body[data-theme="dark"] .theme-toggle { border-color: #334155; color: #E2E8F0; }
+body[data-theme="dark"] [style*="color:#6B7280"] { color: #94A3B8 !important; }
+body[data-theme="dark"] [style*="color:#374151"] { color: #CBD5E1 !important; }
+body[data-theme="dark"] [style*="color:#9CA3AF"] { color: #64748B !important; }
+body[data-theme="dark"] [style*="color:#111827"] { color: #E2E8F0 !important; }
+
+/* Print styles */
+@media print {
+  @page { size: A4; margin: 15mm 12mm; }
+  .no-print { display: none !important; }
+  .section { page-break-inside: avoid; }
+  .chart-box { page-break-inside: avoid; }
+  .report { padding: 0; max-width: none; }
+  .report-header { page-break-after: avoid; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 12px; background: #fff !important; color: #111827 !important; }
+  .metric-value { font-size: 24px; }
+  .section-title { font-size: 16px; }
+  canvas { max-height: 280px !important; }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .report { padding: 24px 16px; }
+  .ba-cards { grid-template-columns: 1fr; }
+  .ctx-grid { grid-template-columns: 1fr; }
+  .score-hero { flex-direction: column; text-align: center; }
+  .dim-bar-label { width: 80px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="report">
+
+  <!-- HEADER -->
+  <div class="report-header">
+    <button onclick="window.print()" class="pdf-btn no-print">Download PDF</button>
+    <button class="theme-toggle no-print" onclick="toggleTheme()" title="Toggle dark mode">&#9790;</button>
+    <div class="report-title">Prompt Coach</div>
+    <div class="report-subtitle">__PC_DATE_RANGE__ &middot; __PC_SESSION_COUNT__ sessions &middot; __PC_PROMPT_COUNT__ prompts analyzed</div>
+  </div>
+
+  <!-- EXECUTIVE SUMMARY -->
+  <div class="section">
+    <div class="score-hero">
+      <div class="score-circle">
+        <div class="score-number">__PC_SCORE_TOTAL__</div>
+      </div>
+      <div class="score-meta">
+        <div class="grade-badge">__PC_GRADE__</div>
+        <div style="font-size:14px;color:#6B7280;margin-top:8px;">Overall prompt quality score based on __PC_PROMPT_COUNT__ prompts across __PC_SESSION_COUNT__ sessions. __PC_SUCCESS_RATE__% success rate.</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:8px;font-weight:600;font-size:14px;">Score Breakdown</div>
+    <div class="dim-bar-row">
+      <div class="dim-bar-label">Specificity</div>
+      <div class="dim-bar-track"><div class="dim-bar-fill" style="width:__PC_SPEC_SCORE__%;"></div></div>
+      <div class="dim-bar-value">__PC_SPEC_SCORE__</div>
+    </div>
+    <div class="dim-bar-row">
+      <div class="dim-bar-label">Context</div>
+      <div class="dim-bar-track"><div class="dim-bar-fill" style="width:__PC_CTX_SCORE__%;"></div></div>
+      <div class="dim-bar-value">__PC_CTX_SCORE__</div>
+    </div>
+    <div class="dim-bar-row">
+      <div class="dim-bar-label">First Message</div>
+      <div class="dim-bar-track"><div class="dim-bar-fill" style="width:__PC_FIRST_SCORE__%;"></div></div>
+      <div class="dim-bar-value">__PC_FIRST_SCORE__</div>
+    </div>
+    <div class="dim-bar-row">
+      <div class="dim-bar-label">Clarity</div>
+      <div class="dim-bar-track"><div class="dim-bar-fill" style="width:__PC_CLARITY_SCORE__%;"></div></div>
+      <div class="dim-bar-value">__PC_CLARITY_SCORE__</div>
+    </div>
+    <div class="dim-bar-row">
+      <div class="dim-bar-label"><span id="liftLabel">Lift</span></div>
+      <div class="dim-bar-track"><div class="dim-bar-fill" id="liftBar" style="width:__PC_LIFT_SCORE__%;"></div></div>
+      <div class="dim-bar-value" id="liftPill">__PC_LIFT_SCORE__</div>
+    </div>
+  </div>
+
+  <!-- OPENING MOVE ANALYSIS -->
+  <div class="section">
+    <div class="section-title">Opening Move Analysis</div>
+    <p style="font-size:14px;color:#6B7280;margin-bottom:12px;">Success rate by how you start your sessions.</p>
+    <div class="chart-box">
+      <canvas id="openerChart" style="max-height:300px;"></canvas>
+    </div>
+  </div>
+
+  <!-- CONTEXT SIGNALS -->
+  <div class="section">
+    <div class="section-title">Context Signals</div>
+    <p style="font-size:14px;color:#6B7280;margin-bottom:12px;">Impact of including context on your success rate.</p>
+    <div class="ctx-grid">
+      __PC_CONTEXT_CARDS__
+    </div>
+  </div>
+
+  <!-- PROMPT LENGTH SWEET SPOT -->
+  <div class="section">
+    <div class="section-title">Prompt Length Sweet Spot</div>
+    <div class="sweet-spot-hero">
+      <span class="sweet-spot-range">__PC_SWEET_SPOT_TEXT__</span>
+    </div>
+    <div style="font-size:14px;color:#6B7280;margin-bottom:12px;">
+      Success: __PC_SWEET_SPOT_RATE__
+      <span class="sweet-spot-delta" style="margin-left:8px;">__PC_SWEET_SPOT_DELTA__ vs overall</span>
+    </div>
+    <div class="chart-box">
+      <canvas id="histogramChart" style="max-height:250px;"></canvas>
+    </div>
+  </div>
+
+  <!-- SESSION ARC -->
+  <div class="section">
+    <div class="section-title">Session Arc</div>
+    <p style="font-size:14px;color:#6B7280;margin-bottom:12px;">How your prompt quality evolves within a session.</p>
+    <div class="chart-box">
+      <canvas id="arcChart" style="max-height:300px;"></canvas>
+    </div>
+    <div class="callout">__PC_ARC_INSIGHT__</div>
+  </div>
+
+  <!-- BEFORE & AFTER -->
+  <div class="section">
+    <div class="section-title">Before &amp; After</div>
+    <p style="font-size:14px;color:#6B7280;margin-bottom:12px;">Same task type, similar complexity, different prompt quality.</p>
+    __PC_PAIRS_HTML__
+  </div>
+
+  <!-- ANTI-PATTERNS DETECTED -->
+  <div class="section">
+    <div class="section-title">Anti-Patterns Detected</div>
+    __PC_ANTIPATTERNS_HTML__
+  </div>
+
+  <!-- SUCCESS RECIPES -->
+  <div class="section">
+    <div class="section-title">Success Recipes</div>
+    <p style="font-size:14px;color:#6B7280;margin-bottom:12px;">Prompt combos with highest success rate.</p>
+    <div class="recipe-grid">
+      __PC_RECIPES_HTML__
+    </div>
+  </div>
+
+  <!-- CORRECTION TREND -->
+  <div class="section">
+    <div class="section-title">Correction Trend</div>
+    <p style="font-size:14px;color:#6B7280;margin-bottom:8px;">How often you correct Claude over time.</p>
+    <span class="trend-label __PC_TREND_CLASS__">__PC_TREND_DIRECTION__</span>
+    <div class="chart-box" style="margin-top:12px;">
+      <canvas id="trendChart" style="max-height:250px;"></canvas>
+    </div>
+  </div>
+
+  <!-- PERSONALIZED TIPS -->
+  <div class="section">
+    <div class="section-title">Personalized Tips</div>
+    <div class="tips-list">
+      __PC_TIPS_HTML__
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="report-footer">
+    Generated by Claude Code Entropy &middot; __PC_SESSION_COUNT__ sessions &middot; __PC_PROMPT_COUNT__ prompts &middot; Score: __PC_SCORE_TOTAL__/100
+  </div>
+
+</div>
+
+<script>
+// Dark mode detection and toggle
+var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+var savedTheme = localStorage.getItem('entropy-theme');
+if (savedTheme) { isDark = savedTheme === 'dark'; document.body.setAttribute('data-theme', savedTheme); }
+function toggleTheme() {
+  isDark = !isDark;
+  document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  localStorage.setItem('entropy-theme', isDark ? 'dark' : 'light');
+  // Rebuild charts with new colors
+  location.reload();
+}
+
+// Chart.js defaults
+Chart.defaults.color = isDark ? '#94A3B8' : '#6B7280';
+Chart.defaults.borderColor = isDark ? '#334155' : '#E5E7EB';
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+var gridColor = isDark ? '#1E293B' : '#F3F4F6';
+var labelColor = isDark ? '#CBD5E1' : '#374151';
+var textColor = isDark ? '#E2E8F0' : '#111827';
+
+// Opener bar chart
+new Chart(document.getElementById('openerChart'), {
+  type: 'bar',
+  data: {
+    labels: __PC_OPENER_LABELS__,
+    datasets: [{
+      label: 'Success Rate %',
+      data: __PC_OPENER_SUCCESS__,
+      backgroundColor: __PC_OPENER_SUCCESS__.map(v => v >= 50 ? 'rgba(22,163,74,0.7)' : 'rgba(220,38,38,0.5)'),
+      borderRadius: 4,
+    }]
+  },
+  plugins: [ChartDataLabels],
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    indexAxis: 'y',
+    layout: { padding: { right: 110 } },
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        anchor: 'end',
+        align: 'end',
+        color: textColor,
+        font: { size: 11, weight: '600' },
+        formatter: function(value, ctx) {
+          var counts = __PC_OPENER_COUNTS__;
+          return value + '% (n=' + counts[ctx.dataIndex] + ')';
+        }
+      },
+      tooltip: {
+        callbacks: {
+          afterLabel: function(ctx) {
+            var counts = __PC_OPENER_COUNTS__;
+            return counts[ctx.dataIndex] + ' sessions';
+          }
+        }
+      }
+    },
+    scales: {
+      x: { min: 0, max: 100, grid: { color: gridColor } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// Histogram
+new Chart(document.getElementById('histogramChart'), {
+  type: 'bar',
+  data: {
+    labels: __PC_HISTOGRAM_LABELS__,
+    datasets: [{
+      label: 'Sessions',
+      data: __PC_HISTOGRAM_DATA__,
+      backgroundColor: __PC_HISTOGRAM_COLORS__,
+      borderRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { maxTicksLimit: 10, font: { size: 10 } } },
+      y: { grid: { color: gridColor } }
+    }
+  }
+});
+
+// Session arc
+new Chart(document.getElementById('arcChart'), {
+  type: 'line',
+  data: {
+    labels: __PC_ARC_LABELS__,
+    datasets: [
+      {
+        label: 'Specificity (0-10)',
+        data: __PC_ARC_SPECIFICITY__,
+        borderColor: '#2563EB',
+        backgroundColor: 'rgba(37,99,235,0.08)',
+        tension: 0.3,
+        fill: true,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Context %',
+        data: __PC_ARC_CONTEXT__,
+        borderColor: '#16A34A',
+        backgroundColor: 'rgba(22,163,74,0.08)',
+        tension: 0.3,
+        fill: false,
+        yAxisID: 'y1',
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    aspectRatio: 2.5,
+    plugins: { legend: { labels: { font: { size: 11 } } } },
+    scales: {
+      y: { min: 0, max: 10, title: { display: true, text: 'Specificity', font: { size: 10 } }, grid: { color: gridColor } },
+      y1: { min: 0, max: 100, position: 'right', title: { display: true, text: 'Context %', font: { size: 10 } }, grid: { display: false } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Correction trend
+var trendLabels = __PC_TREND_LABELS__;
+var trendData = __PC_TREND_DATA__;
+if (trendLabels.length > 0) {
+  new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: trendLabels,
+      datasets: [{
+        label: 'Correction Rate %',
+        data: trendData,
+        borderColor: '#2563EB',
+        backgroundColor: 'rgba(37,99,235,0.08)',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 4,
+        pointBackgroundColor: '#2563EB',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 0, title: { display: true, text: 'Correction %', font: { size: 10 } }, grid: { color: gridColor } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+} else {
+  document.getElementById('trendChart').parentElement.innerHTML = '<p style="color:#9CA3AF;font-style:italic;padding:24px;">Not enough monthly data for trend analysis.</p>';
+}
+
+// Lift 0.0 handling
+var liftStatus = '__PC_LIFT_STATUS__';
+if (liftStatus === 'neutral') {
+  var liftPill = document.getElementById('liftPill');
+  var liftLabel = document.getElementById('liftLabel');
+  var liftBar = document.getElementById('liftBar');
+  if (liftPill) { liftPill.textContent = '~'; liftPill.style.color = '#9CA3AF'; }
+  if (liftLabel) { liftLabel.title = 'Specificity does not correlate with success in your data'; }
+  if (liftBar) { liftBar.style.width = '50%'; liftBar.style.background = '#D1D5DB'; }
+}
+</script>
+
+</body>
+</html>

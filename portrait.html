@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portrait - How AI Sees You</title>
+<meta name="description" content="A personal character study based on __PT_SESSION_COUNT__ sessions and __PT_TOTAL_PROMPTS__ prompts. Written by AI, about you.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖋</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #FFFFFF; transition: background-color 0.3s, color 0.3s; }
+
+/* Shared report CSS framework */
+.report { max-width: 860px; margin: 0 auto; padding: 40px 32px; font-family: Inter, system-ui, -apple-system, sans-serif; color: #111827; line-height: 1.6; }
+.report-header { border-bottom: 2px solid #E5E7EB; padding-bottom: 24px; margin-bottom: 32px; position: relative; }
+.report-title { font-size: 28px; font-weight: 700; }
+.report-subtitle { font-size: 14px; color: #6B7280; }
+.metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin: 24px 0; }
+.metric-card { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; text-align: center; }
+.metric-value { font-size: 32px; font-weight: 700; color: #2563EB; }
+.metric-label { font-size: 13px; color: #6B7280; margin-top: 4px; }
+.section { margin-bottom: 48px; }
+.section-title { font-size: 20px; font-weight: 600; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px; margin-bottom: 16px; }
+.chart-box { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; margin: 16px 0; }
+.callout { background: #EFF6FF; border-radius: 8px; padding: 16px 20px; margin: 12px 0; font-size: 14px; }
+.report-footer { text-align: center; color: #9CA3AF; font-size: 12px; padding-top: 32px; border-top: 1px solid #E5E7EB; margin-top: 48px; }
+
+/* PDF button */
+.pdf-btn { position: absolute; top: 0; right: 0; background: #2563EB; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.pdf-btn:hover { background: #1D4ED8; }
+
+/* Dark mode toggle */
+.theme-toggle { position: absolute; top: 0; right: 120px; background: none; border: 1px solid #E5E7EB; border-radius: 6px; padding: 6px 10px; font-size: 16px; cursor: pointer; line-height: 1; }
+
+/* Portrait-specific: long-form prose */
+.prose {
+  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+  color: #1F2937;
+  line-height: 1.9;
+  font-size: 16px;
+  margin: 16px 0;
+}
+.prose-lead {
+  font-size: 18px;
+  line-height: 2;
+  margin-bottom: 24px;
+}
+
+/* Section number */
+.section-num {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  text-align: center;
+  background: #2563EB;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: 8px;
+  font-family: Inter, system-ui, sans-serif;
+  vertical-align: middle;
+}
+
+/* Heatmap */
+.heatmap { display: grid; grid-template-columns: 40px repeat(24, 1fr); gap: 2px; font-size: 11px; }
+.heatmap-label { display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; color: #6B7280; font-size: 11px; }
+.heatmap-cell { aspect-ratio: 1; border-radius: 3px; min-width: 8px; }
+.heatmap-hour { text-align: center; color: #9CA3AF; font-size: 10px; }
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme="light"]) { background: #0F172A; }
+  body:not([data-theme="light"]) .report { color: #E2E8F0; }
+  body:not([data-theme="light"]) .report-header { border-color: #334155; }
+  body:not([data-theme="light"]) .report-subtitle { color: #94A3B8; }
+  body:not([data-theme="light"]) .metric-card { background: #1E293B; border-color: #334155; }
+  body:not([data-theme="light"]) .metric-value { color: #3B82F6; }
+  body:not([data-theme="light"]) .metric-label { color: #94A3B8; }
+  body:not([data-theme="light"]) .section-title { border-color: #334155; color: #E2E8F0; }
+  body:not([data-theme="light"]) .chart-box { background: #1E293B; border-color: #334155; }
+  body:not([data-theme="light"]) .callout { background: #172554; color: #CBD5E1; }
+  body:not([data-theme="light"]) .report-footer { color: #64748B; border-color: #334155; }
+  body:not([data-theme="light"]) .pdf-btn { background: #3B82F6; }
+  body:not([data-theme="light"]) .prose { color: #CBD5E1; }
+  body:not([data-theme="light"]) .heatmap-label { color: #94A3B8; }
+  body:not([data-theme="light"]) .heatmap-hour { color: #64748B; }
+  body:not([data-theme="light"]) .theme-toggle { border-color: #334155; color: #E2E8F0; }
+  body:not([data-theme="light"]) [style*="color:#6B7280"] { color: #94A3B8 !important; }
+  body:not([data-theme="light"]) [style*="color:#374151"] { color: #CBD5E1 !important; }
+  body:not([data-theme="light"]) [style*="color:#9CA3AF"] { color: #64748B !important; }
+  body:not([data-theme="light"]) [style*="color:#111827"] { color: #E2E8F0 !important; }
+  body:not([data-theme="light"]) [style*="background:#F9FAFB"] { background: #1E293B !important; }
+  body:not([data-theme="light"]) [style*="background:#F3F4F6"] { background: #334155 !important; }
+  body:not([data-theme="light"]) [style*="background:#FEF3C7"] { background: #422006 !important; }
+  body:not([data-theme="light"]) [style*="background:#EFF6FF"] { background: #172554 !important; }
+  body:not([data-theme="light"]) [style*="border:1px solid #E5E7EB"] { border-color: #334155 !important; }
+}
+body[data-theme="dark"] { background: #0F172A; }
+body[data-theme="dark"] .report { color: #E2E8F0; }
+body[data-theme="dark"] .report-header { border-color: #334155; }
+body[data-theme="dark"] .report-subtitle { color: #94A3B8; }
+body[data-theme="dark"] .metric-card { background: #1E293B; border-color: #334155; }
+body[data-theme="dark"] .metric-value { color: #3B82F6; }
+body[data-theme="dark"] .metric-label { color: #94A3B8; }
+body[data-theme="dark"] .section-title { border-color: #334155; color: #E2E8F0; }
+body[data-theme="dark"] .chart-box { background: #1E293B; border-color: #334155; }
+body[data-theme="dark"] .callout { background: #172554; color: #CBD5E1; }
+body[data-theme="dark"] .report-footer { color: #64748B; border-color: #334155; }
+body[data-theme="dark"] .pdf-btn { background: #3B82F6; }
+body[data-theme="dark"] .prose { color: #CBD5E1; }
+body[data-theme="dark"] .heatmap-label { color: #94A3B8; }
+body[data-theme="dark"] .heatmap-hour { color: #64748B; }
+body[data-theme="dark"] .theme-toggle { border-color: #334155; color: #E2E8F0; }
+body[data-theme="dark"] [style*="color:#6B7280"] { color: #94A3B8 !important; }
+body[data-theme="dark"] [style*="color:#374151"] { color: #CBD5E1 !important; }
+body[data-theme="dark"] [style*="color:#9CA3AF"] { color: #64748B !important; }
+body[data-theme="dark"] [style*="color:#111827"] { color: #E2E8F0 !important; }
+body[data-theme="dark"] [style*="background:#F9FAFB"] { background: #1E293B !important; }
+body[data-theme="dark"] [style*="background:#F3F4F6"] { background: #334155 !important; }
+body[data-theme="dark"] [style*="background:#FEF3C7"] { background: #422006 !important; }
+body[data-theme="dark"] [style*="background:#EFF6FF"] { background: #172554 !important; }
+body[data-theme="dark"] [style*="border:1px solid #E5E7EB"] { border-color: #334155 !important; }
+
+/* Print styles */
+@media print {
+  @page { size: A4; margin: 15mm 12mm; }
+  .no-print { display: none !important; }
+  .section { page-break-inside: avoid; }
+  .chart-box { page-break-inside: avoid; }
+  .report { padding: 0; max-width: none; }
+  .report-header { page-break-after: avoid; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 12px; background: #fff !important; color: #111827 !important; }
+  .metric-value { font-size: 24px; }
+  .section-title { font-size: 16px; }
+  .prose { font-size: 13px; line-height: 1.7; }
+  .heatmap-cell { min-width: 6px; }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .report { padding: 24px 16px; }
+  .prose { font-size: 15px; }
+  .prose-lead { font-size: 16px; }
+  .heatmap { font-size: 9px; }
+}
+</style>
+</head>
+<body>
+
+<div class="report">
+
+  <!-- HEADER -->
+  <div class="report-header">
+    <button onclick="window.print()" class="pdf-btn no-print">Download PDF</button>
+    <button class="theme-toggle no-print" onclick="toggleTheme()" title="Toggle dark mode">&#9790;</button>
+    <div class="report-title">How AI Sees You</div>
+    <div class="report-subtitle">A portrait of __PT_AUTHOR__ &middot; __PT_DATE_RANGE__</div>
+    <div class="metric-row" style="margin-bottom:0;">
+      <div class="metric-card"><div class="metric-value">__PT_SESSION_COUNT__</div><div class="metric-label">Sessions Observed</div></div>
+      <div class="metric-card"><div class="metric-value">__PT_TOTAL_HOURS__h</div><div class="metric-label">Hours Together</div></div>
+      <div class="metric-card"><div class="metric-value">__PT_TOTAL_PROMPTS__</div><div class="metric-label">Things You Said</div></div>
+    </div>
+    __PT_DISCLAIMER__
+  </div>
+
+  <!-- 1. FIRST IMPRESSION -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">1</span>First Impression</div>
+    <div class="prose prose-lead">__PT_FIRST_IMPRESSION__</div>
+  </div>
+
+  <!-- 2. WHAT YOU CARE ABOUT -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">2</span>What You Care About</div>
+    <div class="prose">__PT_WHAT_YOU_CARE_ABOUT__</div>
+  </div>
+
+  <!-- 3. HOW YOU TREAT OTHERS -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">3</span>How You Treat Others</div>
+    <div class="prose">__PT_HOW_YOU_TREAT_OTHERS__</div>
+  </div>
+
+  <!-- 4. YOUR DRIVE -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">4</span>Your Drive</div>
+    <div class="prose">__PT_YOUR_DRIVE__</div>
+  </div>
+
+  <!-- 5. YOUR TEMPERAMENT -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">5</span>Your Temperament</div>
+    <div class="prose">__PT_TEMPERAMENT__</div>
+  </div>
+
+  <!-- 6. YOUR MIND -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">6</span>Your Mind</div>
+    <div class="prose">__PT_YOUR_MIND__</div>
+  </div>
+
+  <!-- 7. YOUR HABITS -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">7</span>Your Habits</div>
+    <div class="chart-box">
+      <div class="heatmap" id="heatmapContainer"></div>
+    </div>
+    <div class="prose">__PT_YOUR_HABITS__</div>
+  </div>
+
+  <!-- 8. WHAT I'D TELL YOU -->
+  <div class="section">
+    <div class="section-title"><span class="section-num">8</span>What I'd Tell You</div>
+    <div class="prose" style="font-size:17px;line-height:2;">__PT_WHAT_ID_TELL_YOU__</div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="report-footer">
+    Generated by Claude Code Entropy &middot; Portrait &middot; __PT_SESSION_COUNT__ sessions &middot; __PT_TOTAL_PROMPTS__ prompts
+  </div>
+
+</div>
+
+<script>
+// Dark mode detection and toggle
+var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+var savedTheme = localStorage.getItem('entropy-theme');
+if (savedTheme) { isDark = savedTheme === 'dark'; document.body.setAttribute('data-theme', savedTheme); }
+function toggleTheme() {
+  isDark = !isDark;
+  document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  localStorage.setItem('entropy-theme', isDark ? 'dark' : 'light');
+  location.reload();
+}
+
+// Heatmap (blue single-hue)
+(function() {
+  var data = __PT_HEATMAP_DATA__;
+  var days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  var container = document.getElementById('heatmapContainer');
+  var maxVal = Math.max(1, ...data.flat());
+
+  container.innerHTML = '<div></div>';
+  for (var h = 0; h < 24; h++) {
+    container.innerHTML += '<div class="heatmap-hour">' + (h % 3 === 0 ? (h === 0 ? '12a' : h < 12 ? h + 'a' : h === 12 ? '12p' : (h-12) + 'p') : '') + '</div>';
+  }
+  for (var d = 0; d < 7; d++) {
+    container.innerHTML += '<div class="heatmap-label">' + days[d] + '</div>';
+    for (var h2 = 0; h2 < 24; h2++) {
+      var val = data[d][h2];
+      var intensity = val / maxVal;
+      var bg;
+      if (intensity === 0) {
+        bg = isDark ? '#1E293B' : '#F3F4F6';
+      } else if (isDark) {
+        bg = 'rgb(' + Math.round(30 + intensity * 7) + ',' + Math.round(41 + intensity * 23) + ',' + Math.round(59 + intensity * 176) + ')';
+      } else {
+        bg = 'rgb(' + Math.round(219 - intensity * 189) + ',' + Math.round(234 - intensity * 170) + ',' + Math.round(254 - intensity * 79) + ')';
+      }
+      container.innerHTML += '<div class="heatmap-cell" style="background:' + bg + ';" title="' + days[d] + ' ' + h2 + ':00 - ' + val + ' sessions"></div>';
+    }
+  }
+})();
+</script>
+
+</body>
+</html>

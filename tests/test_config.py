@@ -74,6 +74,40 @@ class TestResolveProjectName:
         assert resolve_project_name("-root-tmp-signalaudit-repo") == "SignalAudit"
 
 
+class TestMultiDirectory:
+    def test_colon_separated(self, monkeypatch):
+        monkeypatch.setenv("CLAUDE_PROJECTS_DIR", "/tmp/dir1:/tmp/dir2:/tmp/dir3")
+        import importlib
+        import patterns.config as cfg
+        importlib.reload(cfg)
+        assert len(cfg.CLAUDE_PROJECTS_DIRS) == 3
+        assert cfg.CLAUDE_PROJECTS_DIRS[0] == Path("/tmp/dir1")
+        assert cfg.CLAUDE_PROJECTS_DIRS[2] == Path("/tmp/dir3")
+        # Backward compat: single var is first entry
+        assert cfg.CLAUDE_PROJECTS_DIR == Path("/tmp/dir1")
+        monkeypatch.delenv("CLAUDE_PROJECTS_DIR")
+        importlib.reload(cfg)
+
+    def test_single_path_backward_compat(self, monkeypatch):
+        monkeypatch.setenv("CLAUDE_PROJECTS_DIR", "/tmp/single")
+        import importlib
+        import patterns.config as cfg
+        importlib.reload(cfg)
+        assert len(cfg.CLAUDE_PROJECTS_DIRS) == 1
+        assert cfg.CLAUDE_PROJECTS_DIR == Path("/tmp/single")
+        monkeypatch.delenv("CLAUDE_PROJECTS_DIR")
+        importlib.reload(cfg)
+
+    def test_empty_segments_skipped(self, monkeypatch):
+        monkeypatch.setenv("CLAUDE_PROJECTS_DIR", "/tmp/a::/tmp/b: ")
+        import importlib
+        import patterns.config as cfg
+        importlib.reload(cfg)
+        assert len(cfg.CLAUDE_PROJECTS_DIRS) == 2
+        monkeypatch.delenv("CLAUDE_PROJECTS_DIR")
+        importlib.reload(cfg)
+
+
 class TestFindSessions:
     def test_find_sessions_returns_list(self):
         result = find_sessions()

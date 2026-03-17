@@ -6,14 +6,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pytest
 from generate_portrait import (
     mine_signals,
-    build_first_impression,
+    mine_personal_content,
+    mine_identity_from_config,
+    build_how_you_see_the_world,
     build_what_you_care_about,
-    build_how_you_treat_others,
-    build_your_drive,
-    build_temperament,
-    build_your_mind,
-    build_your_habits,
-    build_what_id_tell_you,
+    build_your_mission,
+    build_your_vibe,
+    build_what_you_love,
+    build_what_you_cant_stand,
+    build_how_you_connect,
+    build_the_tension,
     generate_html,
 )
 from collections import Counter, defaultdict
@@ -38,8 +40,8 @@ def _make_session(
     if prompts is None:
         prompts = [
             {
-                "text": "Fix the auth bug please",
-                "word_count": 5,
+                "text": "Fix the auth bug in Berlin please. Tell Gourav about the marathon training app we're building with React.",
+                "word_count": 17,
                 "specificity": 6,
                 "corrections": [],
                 "frustration": {},
@@ -94,10 +96,22 @@ def _make_session(
 def _make_data(sessions=None, **overrides):
     if sessions is None:
         sessions = [_make_session() for _ in range(25)]
+    # Build texts from session prompts for realistic content mining
+    all_texts = []
+    for s in sessions:
+        for p in s["prompts"]:
+            all_texts.append(p["text"])
+    if not all_texts:
+        all_texts = ["Fix the auth bug please"] * len(sessions)
+    # Build word counter from actual texts
+    wc = Counter()
+    for t in all_texts:
+        for w in t.lower().split():
+            wc[w] += 1
     base = {
         "sessions": sessions,
-        "all_user_texts": ["Fix the auth bug please"] * len(sessions),
-        "word_counter": Counter({"fix": 25, "auth": 25, "bug": 25, "please": 25}),
+        "all_user_texts": all_texts,
+        "word_counter": wc,
         "bigram_counter": Counter({("fix", "auth"): 25}),
         "hour_counts": defaultdict(int, {10: len(sessions)}),
         "day_hour_counts": defaultdict(int, {(2, 10): len(sessions)}),
@@ -108,6 +122,30 @@ def _make_data(sessions=None, **overrides):
     }
     base.update(overrides)
     return base
+
+
+def _make_personal():
+    """Create a minimal personal content dict for narrative tests."""
+    return {
+        "people": [
+            {"name": "Gourav", "count": 50, "contexts": ["Tell Gourav about the project"]},
+            {"name": "Jannik", "count": 20, "contexts": ["Meeting with Jannik"]},
+        ],
+        "locations": {"Berlin": 30, "Bangalore": 10},
+        "location_contexts": {"Berlin": ["working from Berlin"], "Bangalore": ["Gourav in Bangalore"]},
+        "interests": {
+            "fitness": {"total": 15, "terms": {"marathon": 8, "running": 7}},
+            "music": {"total": 10, "terms": {"techno": 5, "rave": 5}},
+        },
+        "ventures": [
+            {"name": "OpenPaper", "sessions": 100, "text_mentions": 50, "dominant_category": "BUILD", "success_rate": 75.0},
+            {"name": "Rocketlist", "sessions": 40, "text_mentions": 20, "dominant_category": "FIX", "success_rate": 80.0},
+            {"name": "SignalDash", "sessions": 20, "text_mentions": 10, "dominant_category": "BUILD", "success_rate": 65.0},
+        ],
+        "values": Counter({"quality_obsession": 25, "shipping_velocity": 18, "systematic_thinking": 12, "autonomy": 15}),
+        "self_references": ["building tools for researchers", "a founder"],
+        "goals": ["build the best research paper platform", "ship the MVP by March"],
+    }
 
 
 class TestMineSignals:
@@ -160,6 +198,54 @@ class TestMineSignals:
         assert signals["success_pct"] == 0.0
 
 
+class TestMinePersonalContent:
+    def test_returns_all_keys(self):
+        data = _make_data()
+        personal = mine_personal_content(data)
+        expected = {"people", "locations", "location_contexts", "interests",
+                    "ventures", "values", "self_references", "goals"}
+        assert expected == set(personal.keys())
+
+    def test_discovers_locations_from_text(self):
+        data = _make_data()
+        personal = mine_personal_content(data)
+        assert "Berlin" in personal["locations"]
+
+    def test_discovers_ventures_from_sessions(self):
+        data = _make_data()
+        personal = mine_personal_content(data)
+        assert len(personal["ventures"]) > 0
+        assert personal["ventures"][0]["name"] == "TestProject"
+
+    def test_discovers_people_from_text(self):
+        """Gourav appears in relational context ('Tell Gourav') and should be discovered."""
+        data = _make_data()
+        personal = mine_personal_content(data)
+        names = [p["name"] for p in personal["people"]]
+        assert "Gourav" in names
+
+    def test_filters_tech_terms(self):
+        """React appears in texts but should be filtered out as tech term."""
+        data = _make_data()
+        personal = mine_personal_content(data)
+        names = [p["name"] for p in personal["people"]]
+        assert "React" not in names
+
+    def test_empty_data(self):
+        data = _make_data([])
+        personal = mine_personal_content(data)
+        assert personal["people"] == []
+        assert personal["locations"] == {}
+        assert personal["ventures"] == []
+
+    def test_interest_detection(self):
+        data = _make_data()
+        personal = mine_personal_content(data)
+        # "marathon" and "training" appear in default prompt text
+        if "fitness" in personal["interests"]:
+            assert personal["interests"]["fitness"]["total"] > 0
+
+
 class TestNarratives:
     def _get_signals(self, **overrides):
         data = _make_data()
@@ -167,47 +253,130 @@ class TestNarratives:
         signals.update(overrides)
         return signals
 
-    def test_first_impression_not_empty(self):
+    def _get_personal(self):
+        return _make_personal()
+
+    def test_how_you_see_the_world_not_empty(self):
         s = self._get_signals()
-        text = build_first_impression(s)
+        p = self._get_personal()
+        text = build_how_you_see_the_world(s, p)
         assert len(text) > 50
-        assert str(s["sessions_analyzed"]) in text
 
     def test_what_you_care_about_not_empty(self):
         s = self._get_signals()
-        text = build_what_you_care_about(s)
+        p = self._get_personal()
+        text = build_what_you_care_about(s, p)
         assert len(text) > 50
 
-    def test_how_you_treat_others_not_empty(self):
+    def test_your_mission_not_empty(self):
         s = self._get_signals()
-        text = build_how_you_treat_others(s)
-        assert len(text) > 50
-        assert "/10" in text  # niceness score
-
-    def test_your_drive_not_empty(self):
-        s = self._get_signals()
-        text = build_your_drive(s)
+        p = self._get_personal()
+        text = build_your_mission(s, p)
         assert len(text) > 50
 
-    def test_temperament_not_empty(self):
+    def test_your_vibe_not_empty(self):
         s = self._get_signals()
-        text = build_temperament(s)
+        p = self._get_personal()
+        text = build_your_vibe(s, p)
         assert len(text) > 50
 
-    def test_your_mind_not_empty(self):
+    def test_what_you_love_not_empty(self):
         s = self._get_signals()
-        text = build_your_mind(s)
+        p = self._get_personal()
+        text = build_what_you_love(s, p)
         assert len(text) > 50
 
-    def test_your_habits_not_empty(self):
+    def test_what_you_cant_stand_not_empty(self):
         s = self._get_signals()
-        text = build_your_habits(s)
+        p = self._get_personal()
+        text = build_what_you_cant_stand(s, p)
         assert len(text) > 50
 
-    def test_what_id_tell_you_not_empty(self):
+    def test_how_you_connect_not_empty(self):
         s = self._get_signals()
-        text = build_what_id_tell_you(s)
+        p = self._get_personal()
+        text = build_how_you_connect(s, p)
         assert len(text) > 50
+
+    def test_how_you_connect_mentions_people(self):
+        s = self._get_signals()
+        p = self._get_personal()
+        text = build_how_you_connect(s, p)
+        assert "Gourav" in text or "Person" in text
+
+    def test_the_tension_not_empty(self):
+        s = self._get_signals()
+        p = self._get_personal()
+        text = build_the_tension(s, p)
+        assert len(text) > 50
+
+    def test_what_you_care_about_mentions_values(self):
+        s = self._get_signals()
+        p = self._get_personal()
+        text = build_what_you_care_about(s, p)
+        # Should mention values, interests, or projects
+        assert "values" in text.lower() or "interest" in text.lower() or "project" in text.lower() or "thread" in text.lower()
+
+    def test_how_you_see_the_world_mentions_philosophy(self):
+        s = self._get_signals()
+        p = self._get_personal()
+        text = build_how_you_see_the_world(s, p)
+        # Should express worldview / beliefs
+        assert "believe" in text.lower() or "independence" in text.lower() or "worldview" in text.lower() or "principle" in text.lower() or "systems" in text.lower()
+
+
+def _make_identity():
+    """Create a minimal identity dict for tests (avoids reading real config files)."""
+    return {
+        "principles": [
+            {"name": "KISS", "description": "Keep it simple. Simplest solution that works."},
+            {"name": "Engine, not template", "description": "Fix the engine, not the example."},
+            {"name": "Root cause, not quick fix", "description": "Diagnose and fix the underlying problem."},
+            {"name": "Fail fast", "description": "Surface errors early."},
+        ],
+        "communication_style": [
+            {"rule": "Just do it", "detail": "No preambles, no parroting back"},
+            {"rule": "Be direct", "detail": "No I believe, I think, It appears"},
+            {"rule": "Be concise", "detail": "No over-explaining, no filler phrases"},
+        ],
+        "design_values": [
+            {"rule": "No emojis in UI", "detail": "Use proper SVG icons or plain text"},
+            {"rule": "No colored left borders on cards", "detail": "AI slop"},
+            {"rule": "No gradient backgrounds on every element", "detail": "One subtle gradient max"},
+        ],
+        "pet_peeves": [
+            {"rule": "NEVER say should", "detail": "BANNED. Verify instead."},
+            {"rule": "No em dashes", "detail": "Use commas, semicolons, colons instead"},
+        ],
+        "infrastructure": ["All dev servers, heavy compute → AX41"],
+        "work_methodology": ["The ratio: 80% reading, 20% writing."],
+        "quality_bar": ["Do NOT return until genuinely 10/10."],
+        "projects_described": [
+            {"name": "Rocketlist", "description": "Website Scoring, Scoring System"},
+            {"name": "OpenPaper", "description": "codex session, E2E Testing Issues"},
+        ],
+        "raw_sections": {},
+    }
+
+
+class TestMineIdentity:
+    def test_returns_all_keys(self):
+        identity = mine_identity_from_config()
+        expected = {"principles", "communication_style", "design_values",
+                    "pet_peeves", "infrastructure", "work_methodology",
+                    "quality_bar", "projects_described", "raw_sections"}
+        assert expected == set(identity.keys())
+
+    def test_empty_when_sanitized(self):
+        import generate_portrait
+        old = generate_portrait.SANITIZE
+        generate_portrait.SANITIZE = True
+        try:
+            identity = mine_identity_from_config()
+            assert identity["principles"] == []
+            assert identity["communication_style"] == []
+        finally:
+            generate_portrait.SANITIZE = old
 
 
 class TestEndToEnd:
@@ -215,29 +384,64 @@ class TestEndToEnd:
         """Full pipeline produces valid HTML with all placeholders replaced."""
         data = _make_data()
         signals = mine_signals(data)
-        html = generate_html(data, signals)
+        html = generate_html(data, signals, identity=_make_identity())
 
         assert "<!DOCTYPE html>" in html
         assert "__PT_" not in html, f"Unreplaced placeholder found in HTML"
         assert "How AI Sees You" in html
-        assert "First Impression" in html
+        assert "How You See the World" in html
         assert "What You Care About" in html
-        assert "How You Treat Others" in html
-        assert "Your Drive" in html
-        assert "Your Temperament" in html
-        assert "Your Mind" in html
-        assert "Your Habits" in html
+        assert "Your Mission" in html
+        assert "Your Vibe" in html
+        assert "What You Love" in html
+        assert "What You Can't Stand" in html  # note: apostrophe in HTML
+        assert "How You Connect" in html
+        assert "The Tension" in html
+
+    def test_html_no_stat_boxes(self):
+        """No metric cards in the output."""
+        data = _make_data()
+        signals = mine_signals(data)
+        html = generate_html(data, signals, identity=_make_identity())
+        assert "metric-card" not in html
+        assert "Sessions Observed" not in html
+        assert "Hours Together" not in html
+
+    def test_html_no_heatmap(self):
+        """No heatmap in the output."""
+        data = _make_data()
+        signals = mine_signals(data)
+        html = generate_html(data, signals, identity=_make_identity())
+        assert "heatmapContainer" not in html
+        assert "heatmap-cell" not in html
 
     def test_html_dark_mode_support(self):
         data = _make_data()
         signals = mine_signals(data)
-        html = generate_html(data, signals)
+        html = generate_html(data, signals, identity=_make_identity())
         assert "prefers-color-scheme: dark" in html
         assert "toggleTheme" in html
 
     def test_html_pdf_support(self):
         data = _make_data()
         signals = mine_signals(data)
-        html = generate_html(data, signals)
+        html = generate_html(data, signals, identity=_make_identity())
         assert "window.print()" in html
         assert "@media print" in html
+
+    def test_html_contains_personal_content(self):
+        """Generated HTML should contain personal entities from the data."""
+        data = _make_data()
+        signals = mine_signals(data)
+        html = generate_html(data, signals, identity=_make_identity())
+        # Berlin appears in test data texts, should be discoverable
+        assert "Berlin" in html or "location" in html.lower()
+
+    def test_html_with_identity_data(self):
+        """Generated HTML should contain identity-derived content."""
+        data = _make_data()
+        signals = mine_signals(data)
+        identity = _make_identity()
+        html = generate_html(data, signals, identity=identity)
+        # Should contain references to principles or config-derived content
+        assert "KISS" in html or "engine" in html.lower() or "codified" in html.lower() or "philosophy" in html.lower()

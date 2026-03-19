@@ -8,14 +8,7 @@ const os = require('os');
 const HELP = `
 Claude Code Entropy - Your AI coding story, visualized.
 
-Usage: npx claude-entropy [command] [options]
-
-Commands:
-  wrapped              Spotify Wrapped-style stats report (default)
-  prompt-coach         Prompt coaching report with per-prompt analysis
-  user-profile         Personality & character profile based on your usage
-  soul                 Deep personality profiler with narrative prose
-  portrait             "How AI Sees You" - personal character study in prose
+Usage: npx claude-entropy [options]
 
 Options:
   --author NAME        Display name (default: git user.name)
@@ -30,7 +23,10 @@ Options:
 100% local analysis. Data never leaves your machine unless you --publish.
 Project names, prompts, and swear words are auto-stripped before publishing.
 
-Output: ./<report>.html (auto-opens in browser)
+Output: ./wrapped.html (auto-opens in browser)
+
+For more reports (prompt-coach, user-profile, soul, portrait):
+  npx claude-entropy-lab <command>
 `.trim();
 
 function parseArgs(argv) {
@@ -100,6 +96,14 @@ function main() {
     process.exit(0);
   }
 
+  // Redirect old subcommands to claude-entropy-lab
+  const OLD_COMMANDS = ['prompt-coach', 'user-profile', 'soul', 'portrait'];
+  if (args._[0] && OLD_COMMANDS.includes(args._[0].toLowerCase())) {
+    console.error('The "' + args._[0] + '" report has moved to a separate package.');
+    console.error('Run: npx claude-entropy-lab ' + args._[0]);
+    process.exit(1);
+  }
+
   // Find a working Python 3.8+
   const pythonCmd = findPython();
   if (!pythonCmd) {
@@ -156,37 +160,13 @@ function main() {
   if (args.moneyDetail) env.WRAPPED_MONEY_DETAIL = args.moneyDetail;
   if (args.sanitize) env.WRAPPED_SANITIZE = '1';
 
-  // Determine subcommand: first positional arg, default to 'wrapped'
-  const subcommand = (args._[0] || 'wrapped').toLowerCase();
-  const SUBCOMMANDS = {
-    'wrapped': { script: 'generate_wrapped.py', output: 'wrapped.html' },
-    'prompt-coach': { script: 'generate_prompt_coach.py', output: 'prompt_coach.html' },
-    'user-profile': { script: 'generate_user_profile.py', output: 'user_profile.html' },
-    'soul': { script: 'generate_soul.py', output: 'soul.html' },
-    'portrait': { script: 'generate_portrait.py', output: 'portrait.html' },
-  };
-
-  if (!SUBCOMMANDS[subcommand]) {
-    console.error('Unknown command: ' + subcommand);
-    console.error('Available commands: ' + Object.keys(SUBCOMMANDS).join(', '));
-    process.exit(1);
-  }
-
-  const sub = SUBCOMMANDS[subcommand];
-
-  // Build python args - publish is opt-in (wrapped only)
+  // Build python args
   const pyArgs = [];
-  if (args.publish) {
-    if (subcommand === 'wrapped') {
-      pyArgs.push('--publish');
-    } else {
-      console.log('Note: --publish is only supported for the wrapped report. Generating local report.');
-    }
-  }
+  if (args.publish) pyArgs.push('--publish');
 
   // Run the Python script from the package directory
   const scriptDir = path.join(__dirname, '..');
-  const scriptPath = path.join(scriptDir, sub.script);
+  const scriptPath = path.join(scriptDir, 'generate_wrapped.py');
 
   const result = spawnSync(pythonCmd, [scriptPath, ...pyArgs], {
     cwd: scriptDir,
@@ -200,13 +180,13 @@ function main() {
   }
 
   // Copy output to CWD
-  const src = path.join(scriptDir, 'dist', sub.output);
+  const src = path.join(scriptDir, 'dist', 'wrapped.html');
   if (!fs.existsSync(src)) {
     console.error('Error: Expected output not found at ' + src);
     process.exit(1);
   }
 
-  const dest = path.join(process.cwd(), sub.output);
+  const dest = path.join(process.cwd(), 'wrapped.html');
   // Don't copy if CWD is the package dir (running from repo checkout)
   if (path.resolve(src) !== path.resolve(dest)) {
     fs.copyFileSync(src, dest);

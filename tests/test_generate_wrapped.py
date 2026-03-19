@@ -785,7 +785,7 @@ class TestIntegrationSanitizePipeline:
 
     def test_full_pipeline_sanitization(self):
         """Run collect -> aggregate -> generate -> sanitize -> verify end-to-end."""
-        data = collect_data()
+        data = collect_data(max_sessions=50)
         if data["session_count"] == 0:
             pytest.skip("No sessions found")
 

@@ -201,9 +201,11 @@ def censor_word(w):
 # ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
-def collect_data():
+def collect_data(max_sessions=None):
     """Single pass over all sessions, calling all analyzers."""
     sessions = find_all_sessions()
+    if max_sessions:
+        sessions = sessions[:max_sessions]
 
     # Accumulators
     outcomes = []
@@ -1570,6 +1572,8 @@ def verify_sanitization(html, project_names, machine_names, prompt_examples=None
     """
     leaks = []
     for name in project_names:
+        if not name:
+            continue
         # Check in bar-label context to avoid false positives from common words
         escaped = html_mod.escape(name)
         if f'bar-label">{escaped}</span>' in html or f'sessions on {escaped}' in html:

@@ -616,6 +616,12 @@ def _compute_relationship(d, tones, project_sessions):
             for excerpt, words, *rest in t.get("swear_examples_with_hour", []):
                 if len(excerpt) > len(best_example):
                     best_example = excerpt
+        # Sanitize PII from quote (phone numbers, emails, IPs)
+        if best_example:
+            best_example = re.sub(r'\+\d[\d\s\-()]{7,}\d', '[redacted]', best_example)
+            best_example = re.sub(r'\b\d{3}[\s\-]\d{3}[\s\-]\d{4}\b', '[redacted]', best_example)
+            best_example = re.sub(r'[\w.+-]+@[\w.-]+\.\w+', '[redacted]', best_example)
+            best_example = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', '[redacted]', best_example)
         d["swear_example_quote"] = best_example[:80] if best_example else ""
 
         total_user_msgs = sum(t["user_msg_count"] for t in tones)
@@ -675,15 +681,13 @@ def compute_rules(d):
 
     median = d.get("median_words", 20)
     if median < 15:
-        severity = (15 - median) / 15
         short_err = d.get("short_prompt_errors", 0)
         long_err = d.get("long_prompt_errors", 0)
         if short_err > long_err and long_err > 0:
+            severity = (15 - median) / 15
             ratio = f"{short_err / long_err:.1f}x"
             desc = f"Terse prompts cause {ratio} more errors"
-        else:
-            desc = "Short prompts correlate with more retry loops"
-        candidates.append((severity, "Write longer prompts", desc))
+            candidates.append((severity, "Write longer prompts", desc))
 
     pct_perfect = d.get("pct_perfect", 0)
     if pct_perfect > 25:
@@ -836,7 +840,7 @@ def _archetype_stats(key, d, cats, s, percentiles=None):
         return [
             f"{s} sessions{_pct_tag(percentiles, 'sessions')}",
             f'{d.get("median_words", 0)}-word median prompts (terse)',
-            f'{d.get("deployments", 0)} deployments shipped{_pct_tag(percentiles, "deployments")}',
+            f'{d.get("deployments", 0)} deploy events{_pct_tag(percentiles, "deployments")}',
         ]
     elif key == "perfectionist":
         return [
@@ -1154,7 +1158,7 @@ def generate_html(d, rules, archetype=None, percentiles=None):
 
     # ── Hours detail ──
     if d["longest_session_days"] >= 1:
-        hours_detail = f"Longest session: {d['longest_session_days']} days straight"
+        hours_detail = f"Longest session: {d['longest_session_days']} days (start to finish)"
     else:
         hours_detail = f"Longest session: {d['longest_session_hours']} hours"
 
@@ -1228,11 +1232,11 @@ def generate_html(d, rules, archetype=None, percentiles=None):
     # Hours: compare to real-world durations
     hrs = d.get("hours", 0)
     if hrs >= 8760:
-        sessions_comparison_hours = f"More than a full year of non-stop coding"
+        sessions_comparison_hours = f"More than a full year of coding, across parallel sessions"
     elif hrs >= 4000:
-        sessions_comparison_hours = f"That's {round(hrs / 2000)} years of full-time work"
+        sessions_comparison_hours = f"That's {round(hrs / 2000)} years of full-time work, run in parallel"
     elif hrs >= 2000:
-        sessions_comparison_hours = f"A full year at a desk job, compressed into {days} days"
+        sessions_comparison_hours = f"A full year at a desk job, parallelized into {days} days"
     elif hrs >= 500:
         flights = round(hrs / 11)
         sessions_comparison_hours = f"Like {flights} flights from NYC to London, back to back"
@@ -1263,9 +1267,9 @@ def generate_html(d, rules, archetype=None, percentiles=None):
     commits = d.get("commits", 0)
     deploys = d.get("deployments", 0)
     if deploys >= 1000:
-        sessions_comparison_ships = f"More deploys than most startups do in their entire lifetime"
+        sessions_comparison_ships = f"That's every push, preview, and production deploy"
     elif deploys >= 100:
-        sessions_comparison_ships = f"A deploy every {max(1, round(days * 24 / deploys))} hours on average"
+        sessions_comparison_ships = f"A deploy event every {max(1, round(days * 24 / deploys))} hours on average"
     elif commits >= 500:
         sessions_comparison_ships = f"More commits than the average open-source project gets in a year"
     elif commits >= 100:
@@ -1343,7 +1347,7 @@ def generate_html(d, rules, archetype=None, percentiles=None):
         # Hours
         "__HOURS_COUNT__": str(d["hours"]),
         "__HOURS_WATERMARK__": f'{d["hours_days"]} DAYS',
-        "__HOURS_ACCENT__": f'{d["hours_days"]} days. Non-stop.',
+        "__HOURS_ACCENT__": f'{d["hours_days"]} days of cumulative session time.',
         "__HOURS_DETAIL__": hours_detail,
         "__HOURS_COMPARISON__": sessions_comparison_hours,
 
@@ -1525,7 +1529,15 @@ def sanitize_html_for_publish(html):
     # Remove each swear-pill div (single nesting level, no nested divs inside pills)
     html = re.sub(r'<div class="swear-pill">.*?</div>\s*', '', html, flags=re.DOTALL)
 
-    # 5. Machine names: scoped to the sessions split labels container only.
+    # 5. PII: phone numbers, emails, IPs in visible text (not script/style)
+    # Phone: require + prefix or explicit separator pattern to avoid catastrophic
+    # backtracking on numeric JS data (Chart.js arrays, timestamps, etc.)
+    html = re.sub(r'\+\d[\d\s\-()]{7,}\d', '[redacted]', html)
+    html = re.sub(r'\b\d{3}[\s\-]\d{3}[\s\-]\d{4}\b', '[redacted]', html)
+    html = re.sub(r'[\w.+-]+@[\w.-]+\.\w{2,}', '[redacted]', html)
+    html = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', '[redacted]', html)
+
+    # 6. Machine names: scoped to the sessions split labels container only.
     #    Container: <div ...flex...font-size:0.7rem...>LABELS</div>
     #    Labels are: <span>COUNT MACHINENAME</span>
     #    We extract the container, replace inside it, then reassemble.

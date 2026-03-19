@@ -152,11 +152,20 @@ class TestComputeRules:
         assert "Run tests" in rules[0][0]
 
     def test_short_prompts_rule(self):
+        # Rule only fires when short prompts cause more errors than long
         d = {"median_words": 5, "pct_perfect": 0, "switch_rate": 50,
              "sessions": 10, "sessions_with_loops": 0, "misuse_total": 0,
-             "short_prompt_errors": 0, "long_prompt_errors": 0, "error_ratio": "N/A"}
+             "short_prompt_errors": 20, "long_prompt_errors": 5, "error_ratio": "N/A"}
         rules = compute_rules(d)
         assert any("longer prompts" in r[0] for r in rules)
+
+    def test_short_prompts_rule_not_when_contradictory(self):
+        # Rule should NOT fire when long prompts cause more errors
+        d = {"median_words": 5, "pct_perfect": 0, "switch_rate": 50,
+             "sessions": 10, "sessions_with_loops": 0, "misuse_total": 0,
+             "short_prompt_errors": 5, "long_prompt_errors": 20, "error_ratio": "N/A"}
+        rules = compute_rules(d)
+        assert not any("longer prompts" in r[0] for r in rules)
 
     def test_misuse_rule(self):
         d = {"median_words": 20, "pct_perfect": 0, "switch_rate": 50,

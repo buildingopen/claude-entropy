@@ -1,30 +1,40 @@
 {
-  "name": "claude-code-stats",
-  "version": "2.0.1",
-  "description": "Spotify Wrapped for Claude Code - visualize your AI coding stats, token usage, and costs",
+  "name": "claude-entropy",
+  "version": "2.1.0",
+  "description": "Claude Code Wrapped - visualize your AI coding quarter in 20 slides",
   "bin": {
-    "claude-code-stats": "./bin/claude-wrapped.js"
+    "claude-entropy": "./bin/claude-wrapped.js",
+    "claude-wrapped": "./bin/claude-wrapped.js"
   },
   "keywords": [
     "claude",
     "claude-code",
+    "wrapped",
     "stats",
     "analytics",
     "tokens",
     "cost",
     "usage",
-    "wrapped",
     "ai-coding"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/buildingopen/claude-code-stats",
+  "homepage": "https://wrapped.buildingopen.org",
+  "files": [
+    "bin/",
+    "generate_wrapped.py",
+    "wrapped.html",
+    "extract.py",
+    "patterns/",
+    "LICENSE",
+    "README.md"
+  ],
   "author": "Federico De Ponte",
   "bugs": {
-    "url": "https://github.com/buildingopen/claude-code-stats/issues"
+    "url": "https://github.com/buildingopen/claude-wrapped/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/buildingopen/claude-code-stats.git"
+    "url": "https://github.com/buildingopen/claude-wrapped.git"
   },
   "engines": {
     "node": ">=14"

@@ -1,6 +1,6 @@
 {
   "name": "claude-entropy",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Claude Code Wrapped - visualize your AI coding quarter in 20 slides",
   "bin": {
     "claude-entropy": "./bin/claude-wrapped.js",
@@ -24,7 +24,7 @@
     "generate_wrapped.py",
     "wrapped.html",
     "extract.py",
-    "patterns/",
+    "patterns/*.py",
     "LICENSE",
     "README.md"
   ],

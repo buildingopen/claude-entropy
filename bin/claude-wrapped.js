@@ -6,9 +6,9 @@ const path = require('path');
 const os = require('os');
 
 const HELP = `
-Claude Code Entropy - Your AI coding story, visualized.
+Claude Code Wrapped - Your AI coding story, visualized.
 
-Usage: npx claude-entropy [options]
+Usage: npx claude-wrapped [options]
 
 Options:
   --author NAME        Display name (default: git user.name)
@@ -16,7 +16,7 @@ Options:
   --money USD          Total subscription cost for ROI slide
   --money-detail DESC  Subscription description
   --sanitize           Anonymize project names in local HTML
-  --publish            Publish to entropy.buildingopen.org (auto-sanitized)
+  --publish            Publish to wrapped.buildingopen.org (auto-sanitized)
   -v, --version        Show version
   -h, --help           Show this help
 
@@ -26,7 +26,7 @@ Project names, prompts, and swear words are auto-stripped before publishing.
 Output: ./wrapped.html (auto-opens in browser)
 
 For more reports (prompt-coach, user-profile, soul, portrait):
-  npx claude-entropy-lab <command>
+  npx claude-wrapped-lab <command>
 `.trim();
 
 function parseArgs(argv) {
@@ -92,15 +92,15 @@ function main() {
 
   if (args.version) {
     const pkg = require('../package.json');
-    console.log('claude-entropy ' + pkg.version);
+    console.log('claude-wrapped ' + pkg.version);
     process.exit(0);
   }
 
-  // Redirect old subcommands to claude-entropy-lab
+  // Redirect old subcommands to claude-wrapped-lab
   const OLD_COMMANDS = ['prompt-coach', 'user-profile', 'soul', 'portrait'];
   if (args._[0] && OLD_COMMANDS.includes(args._[0].toLowerCase())) {
     console.error('The "' + args._[0] + '" report has moved to a separate package.');
-    console.error('Run: npx claude-entropy-lab ' + args._[0]);
+    console.error('Run: npx claude-wrapped-lab ' + args._[0]);
     process.exit(1);
   }
 

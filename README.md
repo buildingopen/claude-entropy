@@ -1,11 +1,11 @@
-# Claude Code Entropy
+# Claude Code Stats
 
-Spotify Wrapped for Claude Code. Analyzes your `~/.claude/projects/` session data and generates a visual HTML report with usage stats, coding patterns, and personalized insights.
+Spotify Wrapped for Claude Code. Analyzes your `~/.claude/projects/` session data and generates a visual HTML report with usage stats, token costs, coding patterns, and personalized insights.
 
 ## Quick Start
 
 ```bash
-npx claude-entropy
+npx claude-code-stats
 ```
 
 Requires: Node.js 14+ and Python 3.8+ on PATH.
@@ -30,13 +30,13 @@ A self-contained HTML report with 20+ slides covering:
 ## Options
 
 ```bash
-npx claude-entropy --author "Your Name"         # Display name (default: git user.name)
-npx claude-entropy --tz 1                        # UTC offset (default: auto-detect)
-npx claude-entropy --money 600                   # Subscription cost for ROI slide
-npx claude-entropy --money-detail "3 Max"        # Subscription description
-npx claude-entropy --sanitize                    # Anonymize project names for sharing
-npx claude-entropy --publish                     # Publish to entropy.buildingopen.org
-npx claude-entropy --help                        # Show all options
+npx claude-code-stats --author "Your Name"         # Display name (default: git user.name)
+npx claude-code-stats --tz 1                        # UTC offset (default: auto-detect)
+npx claude-code-stats --money 600                   # Subscription cost for ROI slide
+npx claude-code-stats --money-detail "3 Max"        # Subscription description
+npx claude-code-stats --sanitize                    # Anonymize project names for sharing
+npx claude-code-stats --publish                     # Publish to wrapped.buildingopen.org
+npx claude-code-stats --help                        # Show all options
 ```
 
 ## Output
@@ -52,17 +52,6 @@ Generates `./wrapped.html` in your current directory and opens it in your browse
 
 All processing happens locally. No data is sent anywhere unless you use `--publish`.
 
-## More Reports
-
-For personality profiles, prompt coaching, and character studies:
-
-```bash
-npx claude-entropy-lab prompt-coach       # Prompt coaching report
-npx claude-entropy-lab user-profile       # Personality & character profile
-npx claude-entropy-lab soul               # Deep personality profile
-npx claude-entropy-lab portrait           # "How AI Sees You" character study
-```
-
 ## Requirements
 
 - **Node.js** 14+ (for `npx`)
@@ -72,7 +61,7 @@ npx claude-entropy-lab portrait           # "How AI Sees You" character study
 Override the data directory with `CLAUDE_PROJECTS_DIR` env var. Supports multiple directories with `:` separator (`;` on Windows):
 
 ```bash
-CLAUDE_PROJECTS_DIR="/path/to/mac-sessions:/path/to/server-sessions" npx claude-entropy
+CLAUDE_PROJECTS_DIR="/path/to/mac-sessions:/path/to/server-sessions" npx claude-code-stats
 ```
 
 ## Privacy

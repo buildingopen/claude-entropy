@@ -55,14 +55,21 @@ _ENCODED_DIR_MAP = {
 }
 
 # Known path prefixes to strip when decoding encoded directory names
-_ENCODED_PREFIXES = [
-    "-Users-federicodeponte-Downloads-",
-    "-Users-federicodeponte-Documents-",
-    "-Users-federicodeponte-",
-    "-root-Downloads-",
-    "-root-tmp-",
-    "-root-",
-]
+def _build_encoded_prefixes():
+    """Build path prefixes dynamically from current user's home directory."""
+    import getpass
+    username = getpass.getuser()
+    prefixes = [
+        f"-Users-{username}-Downloads-",
+        f"-Users-{username}-Documents-",
+        f"-Users-{username}-",
+        "-root-Downloads-",
+        "-root-tmp-",
+        "-root-",
+    ]
+    return prefixes
+
+_ENCODED_PREFIXES = _build_encoded_prefixes()
 
 
 def resolve_project_name(cwd_or_path):

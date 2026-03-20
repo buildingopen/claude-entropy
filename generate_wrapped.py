@@ -1155,7 +1155,7 @@ def generate_html(d, rules, archetype=None, percentiles=None):
         f"I've coded more with AI than {100 - overall_pct}% of developers.\\n\\n"
         f"{arch_share}{pct_text}. {fmt_number(d['sessions'])} sessions, "
         f"{fmt_number(d['hours'])} hours, {fmt_compact(d['loc'])} LOC.\\n\\n"
-        f"#ClaudeEntropy #ClaudeCode"
+        f"#ClaudeWrapped #ClaudeCode"
     )
 
     # ── Hours detail ──
@@ -1604,11 +1604,13 @@ def publish_to_supabase(html, author_name, hash_val, metrics=None):
     import urllib.request
     import urllib.error
 
-    SUPABASE_URL = "https://cbhbfutssknfjvgvavnt.supabase.co"
-    SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiaGJmdXRzc2tuZmp2Z3Zhdm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTQ1MDksImV4cCI6MjA4NzY5MDUwOX0.LGVvXcA7lRmX-7xBMmyM7ccLbFXzPCWyTik8lwF2dfc"
-    # Allow override with service_role key for admin operations
-    api_key = os.environ.get("WRAPPED_SUPABASE_KEY", SUPABASE_ANON_KEY)
-    BASE_URL = "https://entropy.buildingopen.org"
+    SUPABASE_URL = os.environ.get("WRAPPED_SUPABASE_URL", "https://cbhbfutssknfjvgvavnt.supabase.co")
+    SUPABASE_ANON_KEY = os.environ.get("WRAPPED_SUPABASE_KEY")
+    if not SUPABASE_ANON_KEY:
+        print("Warning: WRAPPED_SUPABASE_KEY not set. Publish skipped.")
+        return None
+    api_key = SUPABASE_ANON_KEY
+    BASE_URL = "https://wrapped.buildingopen.org"
 
     payload = {
         "hash": hash_val,
@@ -1638,7 +1640,7 @@ def publish_to_supabase(html, author_name, hash_val, metrics=None):
         print(f"Warning: publish failed ({e}). Local HTML still generated.")
         return None
 
-    return f"{BASE_URL}/entropy/{hash_val}"
+    return f"{BASE_URL}/wrapped/{hash_val}"
 
 
 def get_community_count():
@@ -1646,9 +1648,10 @@ def get_community_count():
     import urllib.request
     import urllib.error
 
-    SUPABASE_URL = "https://cbhbfutssknfjvgvavnt.supabase.co"
-    SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiaGJmdXRzc2tuZmp2Z3Zhdm50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTQ1MDksImV4cCI6MjA4NzY5MDUwOX0.LGVvXcA7lRmX-7xBMmyM7ccLbFXzPCWyTik8lwF2dfc"
-    api_key = os.environ.get("WRAPPED_SUPABASE_KEY", SUPABASE_ANON_KEY)
+    SUPABASE_URL = os.environ.get("WRAPPED_SUPABASE_URL", "https://cbhbfutssknfjvgvavnt.supabase.co")
+    api_key = os.environ.get("WRAPPED_SUPABASE_KEY")
+    if not api_key:
+        return 0
 
     try:
         req = urllib.request.Request(
@@ -1674,8 +1677,8 @@ def _progress(label, value="", width=40):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate Claude Code Entropy report")
-    parser.add_argument("--publish", action="store_true", help="Publish to entropy.buildingopen.org (auto-sanitized)")
+    parser = argparse.ArgumentParser(description="Generate Claude Code Wrapped report")
+    parser.add_argument("--publish", action="store_true", help="Publish to wrapped.buildingopen.org (auto-sanitized)")
     parser.add_argument("--no-publish", action="store_true", help="(deprecated, now the default)")
     parser.add_argument("--sanitize", action="store_true", help="Anonymize local HTML (project names, prompts, swears, machines)")
     args = parser.parse_args()
@@ -1687,7 +1690,7 @@ def main():
     print()
     print("  ============================================")
     print()
-    print("    CLAUDE CODE ENTROPY")
+    print("    CLAUDE CODE WRAPPED")
     print("    Your AI coding story, visualized.")
     print()
     print("    100% local analysis. No AI calls.")
@@ -1717,7 +1720,7 @@ def main():
 
     if should_publish:
         global SHARE_URL
-        SHARE_URL = f"https://entropy.buildingopen.org/entropy/{hash_val}"
+        SHARE_URL = f"https://wrapped.buildingopen.org/wrapped/{hash_val}"
 
     html = generate_html(d, rules, archetype, percentiles)
 
@@ -1806,7 +1809,7 @@ def main():
                 f"I've coded more with AI than {100 - overall_pct}% of developers.\n\n"
                 f"{arch_share}{pct_text_share}. {fmt_number(d['sessions'])} sessions, "
                 f"{fmt_number(d['hours'])} hours, {fmt_compact(d['loc'])} LOC.\n\n"
-                f"#ClaudeEntropy #ClaudeCode\n{url}"
+                f"#ClaudeWrapped #ClaudeCode\n{url}"
             )
             encoded_text = urllib.parse.quote(share_msg)
             encoded_url = urllib.parse.quote(url)
@@ -1825,7 +1828,7 @@ def main():
             count = get_community_count()
             if count:
                 print()
-                print(f"    Developer #{count} to share their Entropy.")
+                print(f"    Developer #{count} to share their Wrapped.")
 
             print()
             print("  ============================================")

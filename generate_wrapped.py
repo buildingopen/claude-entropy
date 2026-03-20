@@ -220,12 +220,12 @@ def collect_data(max_sessions=None):
 
     total = len(sessions)
     for i, filepath in enumerate(sessions):
-        # Progress counter (updates in-place)
+        # Progress bar
         if sys.stdout.isatty():
-            sys.stdout.write(f"\r  Scanning sessions {'.' * min(24, 1 + i * 24 // total)} {i + 1}/{total}")
+            sys.stdout.write(f"\r{_progress_bar(i + 1, total)}")
             sys.stdout.flush()
         elif (i + 1) % 100 == 0 or i + 1 == total:
-            sys.stdout.write(f"  Scanning sessions... {i + 1}/{total}\n")
+            sys.stdout.write(f"  Scanning... {i + 1}/{total}\n")
             sys.stdout.flush()
 
         # 1. Session outcomes
@@ -1693,11 +1693,36 @@ def get_community_count():
         return None
 
 
-def _progress(label, value="", width=40):
-    """Print a progress line: label padded to width, then value."""
-    padding = max(1, width - len(label))
-    sys.stdout.write(f"  {label}{'.' * padding} {value}\n")
+def _is_color():
+    """Check if terminal supports color."""
+    return sys.stdout.isatty() and os.environ.get("NO_COLOR") is None
+
+def _c(code, text):
+    """Wrap text in ANSI color code if supported."""
+    if _is_color():
+        return f"\033[{code}m{text}\033[0m"
+    return text
+
+def _green(t): return _c("38;5;78", t)
+def _dim(t): return _c("2", t)
+def _bold(t): return _c("1", t)
+def _cyan(t): return _c("36", t)
+
+def _progress(label, value=""):
+    """Print a styled progress line."""
+    check = _green("  \u2713 ") if _is_color() else "  \u2713 "
+    sys.stdout.write(f"{check}{_dim(label)} {_bold(value)}\n")
     sys.stdout.flush()
+
+def _progress_bar(current, total, width=20):
+    """Render an in-place progress bar."""
+    filled = int(current * width / total) if total else 0
+    bar = "\u2588" * filled + "\u2591" * (width - filled)
+    pct = int(current * 100 / total) if total else 0
+    if _is_color():
+        bar_str = f"\033[38;5;78m{bar}\033[0m"
+        return f"  {bar_str} {_dim(f'{current}/{total}')} {_dim(f'{pct}%')}"
+    return f"  {bar} {current}/{total} {pct}%"
 
 
 def main():
@@ -1712,30 +1737,24 @@ def main():
 
     # Welcome screen
     print()
-    print("  ============================================")
+    print(f"  {_green('\u2726')} {_bold('Claude Code Wrapped')}")
+    print(f"  {_dim('Your AI coding story, visualized.')}")
     print()
-    print("    CLAUDE CODE WRAPPED")
-    print("    Your AI coding story, visualized.")
-    print()
-    print("    100% local analysis. No AI calls.")
-    print("    Data never leaves your machine")
-    print("    unless you --publish.")
-    print()
-    print("  ============================================")
+    print(f"  {_dim('100% local \u00b7 No AI calls \u00b7 Nothing leaves your machine')}")
     print()
 
     data = collect_data()
     if sys.stdout.isatty():
-        sys.stdout.write("\r" + " " * 60 + "\r")  # clear in-place line
-    _progress("Scanning sessions", f"{data['session_count']} found")
+        sys.stdout.write("\r" + " " * 70 + "\r")  # clear progress bar
+    _progress("Sessions found", str(data['session_count']))
 
     d = compute_aggregates(data)
-    _progress("Analyzing patterns", "done")
+    _progress("Patterns analyzed", "")
 
     rules = compute_rules(d)
     percentiles = compute_percentiles(d)
     archetype = compute_archetype(d, percentiles)
-    _progress("Computing your archetype", "done")
+    _progress("Archetype computed", "")
 
     arch_key, arch_name, arch_line, arch_share, arch_stats_html = archetype
     author = AUTHOR_NAME or "Claude Code User"
@@ -1756,25 +1775,31 @@ def main():
     else:
         html = html.replace("__SHARE_HASH__", "preview")
 
-    _progress("Building report", "done")
+    _progress("Report built", "")
 
     # Apply local sanitization if requested
     if should_sanitize_local:
         html, local_counts = sanitize_html_for_publish(html)
-        _progress("Sanitizing local HTML", "done")
+        _progress("Sanitized", "")
 
     OUTPUT_DIR.mkdir(exist_ok=True)
     OUTPUT_PATH.write_text(html)
-    print()
-    print(f"  Output: {OUTPUT_PATH}")
 
-    # Summary stats
+    # Summary
     overall_pct = percentiles.get("overall", 0)
     pct_text = f" (top {100 - overall_pct}%)" if overall_pct >= 50 else ""
     print()
-    print(f"  {arch_name}{pct_text}")
-    print(f"  {d['sessions']} sessions, {d['hours']} hours, {fmt_compact(d['loc'])} LOC")
-    print(f"  {d['tokens_display']}{d['tokens_suffix']} tokens, ${d['total_cost']:,.0f} cost, {d['success_pct']}% success")
+    sessions_val = d["sessions"]
+    hours_val = d["hours"]
+    loc_val = fmt_compact(d["loc"])
+    tok_val = f'{d["tokens_display"]}{d["tokens_suffix"]}'
+    cost_val = f'${d["total_cost"]:,.0f}'
+    succ_val = f'{d["success_pct"]}%'
+    print(f"  {_green(_bold(arch_name))}{_dim(pct_text)}")
+    print(f"  {_dim(f'{sessions_val} sessions \u00b7 {hours_val} hours \u00b7 {loc_val} LOC')}")
+    print(f"  {_dim(f'{tok_val} tokens \u00b7 {cost_val} cost \u00b7 {succ_val} success')}")
+    print()
+    print(f"  {_dim('\u2192')} {_cyan(str(OUTPUT_PATH))}")
     print()
 
     if should_publish:
@@ -1784,7 +1809,7 @@ def main():
             html
         )
 
-        print("  Publishing (auto-sanitized)...")
+        _progress("Publishing", "auto-sanitized")
         parts = []
         if strip_counts["projects"]:
             parts.append(f'{strip_counts["projects"]} project names')
@@ -1797,11 +1822,7 @@ def main():
         if strip_counts["machines"]:
             parts.append(f'{strip_counts["machines"]} machine names')
         if parts:
-            print(f"    Stripped: {', '.join(parts)}")
-
-        # Warn if nothing was stripped (template may have changed)
-        if sum(strip_counts.values()) == 0:
-            print("    Warning: nothing was stripped. Template may have changed.")
+            _progress("Stripped", ", ".join(parts))
 
         # Defense-in-depth: verify no known private data survives
         project_names = [name for name, _ in d.get("top_projects", [])]
@@ -1841,28 +1862,19 @@ def main():
             encoded_url = urllib.parse.quote(url)
 
             print()
-            print("  ============================================")
-            print()
-            print(f"    LIVE: {url}")
-            print()
-            print(f"    Share on X:")
-            print(f"    https://x.com/intent/tweet?text={encoded_text}")
-            print()
-            print(f"    Share on LinkedIn:")
-            print(f"    https://linkedin.com/sharing/share-offsite/?url={encoded_url}")
+            print(f"  {_green('\u2726')} {_bold('Published!')}")
+            print(f"  {_dim('\u2192')} {_cyan(url)}")
 
             count = get_community_count()
             if count:
-                print()
-                print(f"    Developer #{count} to share their Wrapped.")
+                print(f"  {_dim(f'Developer #{count} to share their Wrapped.')}")
 
             print()
-            print("  ============================================")
+            print(f"  {_dim('Share:')} {_dim('x.com/intent/tweet?text=')}{_dim(encoded_text[:40])}...")
+            print(f"  {_dim('       linkedin.com/sharing/share-offsite/?url=')}{_dim(encoded_url[:30])}...")
         print()
     else:
-        print("  ---")
-        print("  Want to share? Run with --publish")
-        print("  (project names and prompts are auto-sanitized)")
+        print(f"  {_dim('Run with')} {_bold('--publish')} {_dim('to share (auto-sanitized)')}")
         print()
 
 

@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<!-- Save card uses Canvas API (no external dependency) -->
 <style>
 :root {
   --bg: #050505;
@@ -2019,7 +2019,7 @@ body::after {
       Copy text
     </button>
   </div>
-  <div class="fade-up" style="font-size:0.6rem; color:var(--text-muted); margin-top:0.75rem; text-align:center;">Save card first, then attach to your post</div>
+  <div class="fade-up" style="font-size:0.6rem; color:var(--text-muted); margin-top:0.75rem; text-align:center;">Save your card, then attach the image to your post</div>
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
   </div>
@@ -2049,6 +2049,9 @@ body::after {
 <script>
 (function() {
   'use strict';
+
+  // Share card data (injected by generate_wrapped.py)
+  var SHARE_DATA = __SHARE_DATA_JSON__;
 
   var CARD_COUNT = document.querySelectorAll('.card').length;
 
@@ -2343,7 +2346,8 @@ body::after {
   var hasUrl = shareUrl && !shareUrl.startsWith('__');
   var xLink = document.getElementById('shareX');
   if (xLink) {
-    var xParams = 'text=' + encodeURIComponent(shareText + (hasUrl ? '\n' + shareUrl : ''));
+    var xText = shareText.replace(/\\n/g, '\n');
+    var xParams = 'text=' + encodeURIComponent(xText + (hasUrl ? '\n' + shareUrl : '\nhttps://wrapped.buildingopen.org'));
     xLink.href = 'https://x.com/intent/tweet?' + xParams;
   }
   var liLink = document.getElementById('shareLI');
@@ -2357,7 +2361,8 @@ body::after {
   var copyBtn = document.getElementById('copyLink');
   var copyIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy text';
   if (copyBtn) copyBtn.addEventListener('click', function() {
-    var copyContent = shareText + (hasUrl ? '\n' + shareUrl : '');
+    var copyText = shareText.replace(/\\n/g, '\n');
+    var copyContent = copyText + (hasUrl ? '\n' + shareUrl : '\nhttps://wrapped.buildingopen.org');
     navigator.clipboard.writeText(copyContent).then(function() {
       copyBtn.classList.add('copied');
       copyBtn.textContent = 'Copied!';
@@ -2368,68 +2373,198 @@ body::after {
     });
   });
 
-  // ----- SAVE CARD AS IMAGE -----
+  // ----- SAVE CARD AS IMAGE (Canvas API, no external deps) -----
   var saveBtn = document.getElementById('saveCard');
-  if (saveBtn && typeof html2canvas !== 'undefined') {
+  if (saveBtn) {
     saveBtn.addEventListener('click', function() {
-      var ticket = document.querySelector('.share-ticket');
-      if (!ticket) return;
       saveBtn.textContent = 'Saving...';
+      var d = SHARE_DATA;
+      var W = 1200, H = 630, S = 2;
+      var canvas = document.createElement('canvas');
+      canvas.width = W * S;
+      canvas.height = H * S;
+      var ctx = canvas.getContext('2d');
+      ctx.scale(S, S);
 
-      // html2canvas can't render: gradient text, backdrop-filter, ::before borders
-      // Inject a temporary <style> with !important overrides (inline styles alone
-      // don't reliably beat stylesheet rules in html2canvas's computed-style reader)
-      var exportStyle = document.createElement('style');
-      exportStyle.id = 'export-overrides';
-      exportStyle.textContent = [
-        '.share-ticket [class*="gradient-"] {',
-        '  background: none !important;',
-        '  -webkit-background-clip: unset !important;',
-        '  background-clip: unset !important;',
-        '  -webkit-text-fill-color: #22c55e !important;',
-        '  color: #22c55e !important;',
-        '}',
-        '.share-ticket .gradient-purple { -webkit-text-fill-color: #a855f7 !important; color: #a855f7 !important; }',
-        '.share-ticket .gradient-blue { -webkit-text-fill-color: #3b82f6 !important; color: #3b82f6 !important; }',
-        '.share-ticket .gradient-cyan { -webkit-text-fill-color: #06b6d4 !important; color: #06b6d4 !important; }',
-        '.share-ticket .gradient-rose { -webkit-text-fill-color: #f43f5e !important; color: #f43f5e !important; }',
-        '.share-ticket { background: linear-gradient(135deg, #0d1117, #0a1a12, #0d1117) !important; backdrop-filter: none !important; border: 1px solid rgba(34,197,94,0.25) !important; overflow: visible !important; }',
-        '.share-ticket::before, .share-ticket::after { display: none !important; }',
-      ].join('\n');
-      document.head.appendChild(exportStyle);
+      // Colors
+      var green = '#22c55e', purple = '#a855f7', blue = '#3b82f6';
+      var cyan = '#06b6d4';
+      var muted = 'rgba(255,255,255,0.32)', dimText = 'rgba(255,255,255,0.5)';
+      var statColors = [green, purple, blue, cyan, green];
+      var cx = W / 2;
 
-      // Force Twitter-optimal 1200x675 landscape ratio
-      var origW = ticket.style.width;
-      var origH = ticket.style.height;
-      ticket.style.width = '600px';
-      ticket.style.height = '337px';
-      html2canvas(ticket, {
-        backgroundColor: '#0a0a0a',
-        scale: 2,
-        width: 600,
-        height: 337,
-        useCORS: true,
-        logging: false,
-      }).then(function(canvas) {
-        ticket.style.width = origW;
-        ticket.style.height = origH;
-        var el = document.getElementById('export-overrides');
-        if (el) el.remove();
-        var link = document.createElement('a');
-        link.download = 'claude-code-wrapped.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        saveBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Saved!';
-        setTimeout(function() {
-          saveBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save card';
-        }, 2000);
-      }).catch(function() {
-        ticket.style.width = origW;
-        ticket.style.height = origH;
-        var el = document.getElementById('export-overrides');
-        if (el) el.remove();
-        saveBtn.textContent = 'Save card';
-      });
+      // Helper: draw a faded horizontal line
+      function divider(y) {
+        var g = ctx.createLinearGradient(140, 0, W - 140, 0);
+        g.addColorStop(0, 'transparent');
+        g.addColorStop(0.5, 'rgba(255,255,255,0.08)');
+        g.addColorStop(1, 'transparent');
+        ctx.fillStyle = g;
+        ctx.fillRect(140, y, W - 280, 1);
+      }
+
+      // ── Background ──
+      var bg = ctx.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0, '#08090a');
+      bg.addColorStop(0.4, '#0a100d');
+      bg.addColorStop(0.7, '#0a0e10');
+      bg.addColorStop(1, '#08090a');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      // Green radial glow behind archetype
+      var glow = ctx.createRadialGradient(cx, 190, 0, cx, 190, 420);
+      glow.addColorStop(0, 'rgba(34,197,94,0.05)');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, W, H);
+
+      // Blue-purple radial accent bottom-right
+      var glow2 = ctx.createRadialGradient(W - 100, H, 0, W - 100, H, 350);
+      glow2.addColorStop(0, 'rgba(99,102,241,0.03)');
+      glow2.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow2;
+      ctx.fillRect(0, 0, W, H);
+
+      // Noise
+      ctx.globalAlpha = 0.012;
+      for (var ni = 0; ni < 2000; ni++) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(Math.random() * W, Math.random() * H, 1, 1);
+      }
+      ctx.globalAlpha = 1;
+
+      // ── Border card ──
+      var pad = 28, r = 20;
+      ctx.strokeStyle = 'rgba(34,197,94,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(pad, pad, W - pad * 2, H - pad * 2, r);
+      ctx.stroke();
+
+      // ── Header ──
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.font = '600 9px -apple-system, "Segoe UI", sans-serif';
+      ctx.letterSpacing = '5px';
+      ctx.fillText('CLAUDE CODE WRAPPED', cx, 72);
+      ctx.letterSpacing = '0px';
+
+      // Date range
+      ctx.fillStyle = green;
+      ctx.font = '700 20px -apple-system, "Segoe UI", sans-serif';
+      ctx.fillText(d.date_range, cx, 100);
+
+      // Author row
+      var authorW = ctx.measureText(d.author).width;
+      var rowW = 24 + 8 + authorW;
+      var rowX = cx - rowW / 2;
+      ctx.fillStyle = 'rgba(34,197,94,0.12)';
+      ctx.beginPath();
+      ctx.arc(rowX + 12, 122, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = green;
+      ctx.font = '600 10px -apple-system, "Segoe UI", sans-serif';
+      ctx.fillText(d.initials, rowX + 12, 126);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = dimText;
+      ctx.font = '500 13px -apple-system, "Segoe UI", sans-serif';
+      ctx.fillText(d.author, rowX + 28, 127);
+      ctx.textAlign = 'center';
+
+      // ── Divider ──
+      divider(148);
+
+      // ── Archetype ──
+      ctx.fillStyle = green;
+      ctx.font = '800 48px -apple-system, "Segoe UI", sans-serif';
+      ctx.fillText(d.archetype, cx, 202);
+
+      if (d.percentile_text) {
+        ctx.fillStyle = dimText;
+        ctx.font = '500 12px -apple-system, "Segoe UI", sans-serif';
+        ctx.fillText(d.percentile_text, cx, 224);
+      }
+
+      // ── Divider ──
+      divider(244);
+
+      // ── Stats row 1: 3 columns ──
+      var y1 = 296;
+      var labels1 = ['SESSIONS', 'HOURS', 'LOC'];
+      var vals1 = [d.sessions, d.hours, d.loc];
+      var cols3 = [cx - 260, cx, cx + 260];
+      for (var si = 0; si < 3; si++) {
+        ctx.fillStyle = statColors[si];
+        ctx.font = '800 40px -apple-system, "Segoe UI", sans-serif';
+        ctx.fillText(vals1[si], cols3[si], y1);
+        ctx.fillStyle = muted;
+        ctx.font = '600 9px -apple-system, "Segoe UI", sans-serif';
+        ctx.letterSpacing = '3px';
+        ctx.fillText(labels1[si], cols3[si], y1 + 22);
+        ctx.letterSpacing = '0px';
+      }
+
+      // ── Stats row 2: 2 columns ──
+      var y2 = 380;
+      var labels2 = ['TOKENS', 'SUCCESS'];
+      var vals2 = [d.tokens, d.success];
+      var cols2 = [cx - 160, cx + 160];
+      for (var sj = 0; sj < 2; sj++) {
+        ctx.fillStyle = statColors[sj + 3];
+        ctx.font = '800 40px -apple-system, "Segoe UI", sans-serif';
+        ctx.fillText(vals2[sj], cols2[sj], y2);
+        ctx.fillStyle = muted;
+        ctx.font = '600 9px -apple-system, "Segoe UI", sans-serif';
+        ctx.letterSpacing = '3px';
+        ctx.fillText(labels2[sj], cols2[sj], y2 + 22);
+        ctx.letterSpacing = '0px';
+      }
+
+      // ── Divider ──
+      divider(424);
+
+      // ── Cost line ──
+      if (d.cost_line) {
+        ctx.fillStyle = dimText;
+        ctx.font = '500 14px -apple-system, "Segoe UI", sans-serif';
+        ctx.fillText(d.cost_line, cx, 454);
+      }
+
+      // ── Footer ──
+      ctx.fillStyle = 'rgba(34,197,94,0.3)';
+      ctx.font = '14px -apple-system, sans-serif';
+      ctx.fillText('\u2726', cx, 520);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      ctx.font = '600 9px -apple-system, "Segoe UI", sans-serif';
+      ctx.letterSpacing = '4px';
+      ctx.fillText('WRAPPED.BUILDINGOPEN.ORG', cx, 544);
+      ctx.letterSpacing = '0px';
+
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.font = '500 11px "SF Mono", "Fira Code", "Courier New", monospace';
+      ctx.fillText('npx claude-entropy', cx, 566);
+
+      // ── Corner brackets ──
+      ctx.strokeStyle = 'rgba(34,197,94,0.1)';
+      ctx.lineWidth = 1;
+      var cL = 16, cP = pad + 6;
+      ctx.beginPath(); ctx.moveTo(cP, cP + cL); ctx.lineTo(cP, cP); ctx.lineTo(cP + cL, cP); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W - cP - cL, cP); ctx.lineTo(W - cP, cP); ctx.lineTo(W - cP, cP + cL); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cP, H - cP - cL); ctx.lineTo(cP, H - cP); ctx.lineTo(cP + cL, H - cP); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W - cP - cL, H - cP); ctx.lineTo(W - cP, H - cP); ctx.lineTo(W - cP, H - cP - cL); ctx.stroke();
+
+      // ── Download ──
+      var link = document.createElement('a');
+      link.download = 'claude-code-wrapped.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      saveBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Saved!';
+      setTimeout(function() {
+        saveBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save card';
+      }, 2000);
     });
   }
 

@@ -1485,6 +1485,21 @@ def generate_html(d, rules, archetype=None, percentiles=None):
         "__ARCHETYPE_ICON__": archetype_icon,
         "__SHARE_TEXT__": share_text.replace("'", "\\'"),
         "__SHARE_URL__": SHARE_URL,
+
+        # Share card canvas data (JSON for save-card renderer)
+        "__SHARE_DATA_JSON__": json.dumps({
+            "date_range": date_range.replace("&ndash;", "\u2013"),
+            "author": author,
+            "initials": "".join(w[0].upper() for w in author.split()[:2]) if author else "CC",
+            "archetype": arch_name,
+            "percentile_text": f"Top {100 - overall_pct}% of Claude Code users" if overall_pct >= 50 else "",
+            "sessions": fmt_compact(d["sessions"]),
+            "hours": fmt_compact(d["hours"]),
+            "loc": fmt_compact(d["loc"]),
+            "tokens": f'{d["tokens_display"]}{d["tokens_suffix"]}',
+            "success": f'{d["success_pct"]}%',
+            "cost_line": f'${d["total_cost"]:,.0f} in API costs' if d["total_cost"] > 0 else "",
+        }),
     }
 
     html = template

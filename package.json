@@ -1,6 +1,6 @@
 {
   "name": "claude-entropy",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "Claude Code Wrapped - visualize your AI coding quarter in 20 slides",
   "bin": {
     "claude-entropy": "./bin/claude-wrapped.js",

@@ -218,7 +218,16 @@ def collect_data(max_sessions=None):
     all_user_texts = []  # for prompting style
     session_word_counts = {}  # filepath -> list of word counts per user msg
 
+    total = len(sessions)
     for i, filepath in enumerate(sessions):
+        # Progress counter (updates in-place)
+        if sys.stdout.isatty():
+            sys.stdout.write(f"\r  Scanning sessions {'.' * min(24, 1 + i * 24 // total)} {i + 1}/{total}")
+            sys.stdout.flush()
+        elif (i + 1) % 100 == 0 or i + 1 == total:
+            sys.stdout.write(f"  Scanning sessions... {i + 1}/{total}\n")
+            sys.stdout.flush()
+
         # 1. Session outcomes
         try:
             o = analyze_outcome(filepath)
@@ -1701,6 +1710,8 @@ def main():
     print()
 
     data = collect_data()
+    if sys.stdout.isatty():
+        sys.stdout.write("\r" + " " * 60 + "\r")  # clear in-place line
     _progress("Scanning sessions", f"{data['session_count']} found")
 
     d = compute_aggregates(data)

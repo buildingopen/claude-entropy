@@ -2390,7 +2390,7 @@ body::after {
       var green = '#22c55e', purple = '#a855f7', blue = '#3b82f6';
       var cyan = '#06b6d4';
       var muted = 'rgba(255,255,255,0.32)', dimText = 'rgba(255,255,255,0.5)';
-      var statColors = [green, purple, blue, cyan, green];
+      var statColors = [green, green, green, green, green];
       var cx = W / 2;
 
       // Helper: draw a faded horizontal line
@@ -2434,9 +2434,36 @@ body::after {
       }
       ctx.globalAlpha = 1;
 
-      // ── Border card ──
+      // ── Helper: gradient text ──
+      function gradText(text, x, y, font, c1, c2) {
+        ctx.font = font;
+        var m = ctx.measureText(text);
+        var g = ctx.createLinearGradient(x - m.width / 2, y - 20, x + m.width / 2, y + 10);
+        g.addColorStop(0, c1);
+        g.addColorStop(1, c2);
+        ctx.fillStyle = g;
+        ctx.fillText(text, x, y);
+      }
+
+      // ── Helper: text glow ──
+      function glowText(text, x, y, font, color, blur) {
+        ctx.save();
+        ctx.font = font;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = blur;
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.3;
+        ctx.fillText(text, x, y);
+        ctx.restore();
+      }
+
+      // ── Border card with gradient stroke ──
       var pad = 28, r = 20;
-      ctx.strokeStyle = 'rgba(34,197,94,0.15)';
+      var borderGrad = ctx.createLinearGradient(0, 0, W, H);
+      borderGrad.addColorStop(0, 'rgba(34,197,94,0.25)');
+      borderGrad.addColorStop(0.5, 'rgba(34,197,94,0.08)');
+      borderGrad.addColorStop(1, 'rgba(34,197,94,0.2)');
+      ctx.strokeStyle = borderGrad;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.roundRect(pad, pad, W - pad * 2, H - pad * 2, r);
@@ -2450,18 +2477,21 @@ body::after {
       ctx.fillText('CLAUDE CODE WRAPPED', cx, 72);
       ctx.letterSpacing = '0px';
 
-      // Date range
-      ctx.fillStyle = green;
-      ctx.font = '700 20px -apple-system, "Segoe UI", sans-serif';
-      ctx.fillText(d.date_range, cx, 100);
+      // Date range with gradient
+      gradText(d.date_range, cx, 100, '700 20px -apple-system, "Segoe UI", sans-serif', '#22c55e', '#4ade80');
 
       // Author row
+      ctx.font = '500 13px -apple-system, "Segoe UI", sans-serif';
       var authorW = ctx.measureText(d.author).width;
       var rowW = 24 + 8 + authorW;
       var rowX = cx - rowW / 2;
-      ctx.fillStyle = 'rgba(34,197,94,0.12)';
+      // Avatar ring
+      ctx.strokeStyle = 'rgba(34,197,94,0.3)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(rowX + 12, 122, 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(34,197,94,0.08)';
       ctx.fill();
       ctx.fillStyle = green;
       ctx.font = '600 10px -apple-system, "Segoe UI", sans-serif';
@@ -2475,10 +2505,9 @@ body::after {
       // ── Divider ──
       divider(148);
 
-      // ── Archetype ──
-      ctx.fillStyle = green;
-      ctx.font = '800 48px -apple-system, "Segoe UI", sans-serif';
-      ctx.fillText(d.archetype, cx, 202);
+      // ── Archetype with glow ──
+      glowText(d.archetype, cx, 202, '800 48px -apple-system, "Segoe UI", sans-serif', green, 40);
+      gradText(d.archetype, cx, 202, '800 48px -apple-system, "Segoe UI", sans-serif', '#4ade80', '#16a34a');
 
       if (d.percentile_text) {
         ctx.fillStyle = dimText;
@@ -2494,10 +2523,10 @@ body::after {
       var labels1 = ['SESSIONS', 'HOURS', 'LOC'];
       var vals1 = [d.sessions, d.hours, d.loc];
       var cols3 = [cx - 260, cx, cx + 260];
+      var gradPairs = [[green, '#4ade80'], [green, '#4ade80'], [green, '#4ade80'], [green, '#4ade80'], [green, '#4ade80']];
       for (var si = 0; si < 3; si++) {
-        ctx.fillStyle = statColors[si];
-        ctx.font = '800 40px -apple-system, "Segoe UI", sans-serif';
-        ctx.fillText(vals1[si], cols3[si], y1);
+        glowText(vals1[si], cols3[si], y1, '800 40px -apple-system, "Segoe UI", sans-serif', statColors[si], 20);
+        gradText(vals1[si], cols3[si], y1, '800 40px -apple-system, "Segoe UI", sans-serif', gradPairs[si][0], gradPairs[si][1]);
         ctx.fillStyle = muted;
         ctx.font = '600 9px -apple-system, "Segoe UI", sans-serif';
         ctx.letterSpacing = '3px';
@@ -2511,9 +2540,8 @@ body::after {
       var vals2 = [d.tokens, d.success];
       var cols2 = [cx - 160, cx + 160];
       for (var sj = 0; sj < 2; sj++) {
-        ctx.fillStyle = statColors[sj + 3];
-        ctx.font = '800 40px -apple-system, "Segoe UI", sans-serif';
-        ctx.fillText(vals2[sj], cols2[sj], y2);
+        glowText(vals2[sj], cols2[sj], y2, '800 40px -apple-system, "Segoe UI", sans-serif', statColors[sj + 3], 20);
+        gradText(vals2[sj], cols2[sj], y2, '800 40px -apple-system, "Segoe UI", sans-serif', gradPairs[sj + 3][0], gradPairs[sj + 3][1]);
         ctx.fillStyle = muted;
         ctx.font = '600 9px -apple-system, "Segoe UI", sans-serif';
         ctx.letterSpacing = '3px';
@@ -2532,9 +2560,14 @@ body::after {
       }
 
       // ── Footer ──
-      ctx.fillStyle = 'rgba(34,197,94,0.3)';
+      // Sparkle with glow
+      ctx.save();
+      ctx.shadowColor = 'rgba(34,197,94,0.4)';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = 'rgba(34,197,94,0.5)';
       ctx.font = '14px -apple-system, sans-serif';
       ctx.fillText('\u2726', cx, 520);
+      ctx.restore();
 
       ctx.fillStyle = 'rgba(255,255,255,0.22)';
       ctx.font = '600 9px -apple-system, "Segoe UI", sans-serif';
@@ -2546,14 +2579,18 @@ body::after {
       ctx.font = '500 11px "SF Mono", "Fira Code", "Courier New", monospace';
       ctx.fillText('npx claude-entropy', cx, 566);
 
-      // ── Corner brackets ──
-      ctx.strokeStyle = 'rgba(34,197,94,0.1)';
+      // ── Corner brackets with glow ──
+      ctx.save();
+      ctx.strokeStyle = 'rgba(34,197,94,0.15)';
+      ctx.shadowColor = 'rgba(34,197,94,0.2)';
+      ctx.shadowBlur = 8;
       ctx.lineWidth = 1;
       var cL = 16, cP = pad + 6;
       ctx.beginPath(); ctx.moveTo(cP, cP + cL); ctx.lineTo(cP, cP); ctx.lineTo(cP + cL, cP); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(W - cP - cL, cP); ctx.lineTo(W - cP, cP); ctx.lineTo(W - cP, cP + cL); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(cP, H - cP - cL); ctx.lineTo(cP, H - cP); ctx.lineTo(cP + cL, H - cP); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(W - cP - cL, H - cP); ctx.lineTo(W - cP, H - cP); ctx.lineTo(W - cP, H - cP - cL); ctx.stroke();
+      ctx.restore();
 
       // ── Download ──
       var link = document.createElement('a');

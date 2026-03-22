@@ -59,15 +59,30 @@ def _build_encoded_prefixes():
     """Build path prefixes dynamically from current user's home directory."""
     import getpass
     username = getpass.getuser()
-    prefixes = [
-        f"-Users-{username}-Downloads-",
-        f"-Users-{username}-Documents-",
-        f"-Users-{username}-",
-        "-root-Downloads-",
-        "-root-tmp-",
-        "-root-",
-    ]
-    return prefixes
+    prefixes = set()
+    # Current user's paths
+    prefixes.add(f"-Users-{username}-Downloads-")
+    prefixes.add(f"-Users-{username}-Documents-")
+    prefixes.add(f"-Users-{username}-")
+    # Common server/root paths
+    prefixes.add("-root-Downloads-")
+    prefixes.add("-root-tmp-")
+    prefixes.add("-root-")
+    # Also match any -Users-<name>- pattern for cross-machine session dirs
+    return sorted(prefixes, key=len, reverse=True)  # longest first for greedy match
+
+
+def _match_encoded_prefix(s):
+    """Match against known prefixes or any -Users-<name>- pattern."""
+    for prefix in _ENCODED_PREFIXES:
+        if s.startswith(prefix):
+            return s[len(prefix):]
+    # Fallback: match generic -Users-<username>- pattern
+    import re
+    m = re.match(r'-Users-[^-]+-(?:Downloads-|Documents-)?', s)
+    if m:
+        return s[m.end():]
+    return None
 
 _ENCODED_PREFIXES = _build_encoded_prefixes()
 
@@ -103,11 +118,8 @@ def resolve_project_name(cwd_or_path):
         return _ENCODED_DIR_MAP[s]
 
     # Encoded dir name: strip known prefixes, then match
-    remainder = s
-    for prefix in _ENCODED_PREFIXES:
-        if s.startswith(prefix):
-            remainder = s[len(prefix):]
-            break
+    matched = _match_encoded_prefix(s)
+    remainder = matched if matched is not None else s
 
     # Direct match on remainder
     if remainder in PROJECT_NAME_MAP:

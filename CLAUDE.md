@@ -19,7 +19,7 @@ Spotify Wrapped for Claude Code. Generates a visual HTML report from session dat
 
 ```bash
 # npm (one-liner)
-npx claude-wrapped
+npx claude-entropy
 
 # Direct Python
 WRAPPED_AUTHOR="Your Name" python3 generate_wrapped.py
@@ -39,4 +39,4 @@ The private dev repo is `federicodeponte/transcript-analyzer`.
 
 ## npm package
 
-Published as `claude-wrapped` on npm. Version bump + `npm publish` from this repo.
+Published as `claude-entropy` on npm (`claude-wrapped` was taken). Both `claude-entropy` and `claude-wrapped` are registered as bin commands. Version bump + `npm publish` from this repo.

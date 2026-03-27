@@ -34,7 +34,7 @@ python3 -m pytest tests/ -v
 ## Repo structure
 
 This repo (`buildingopen/claude-wrapped`) contains only the Wrapped report.
-Other reports (prompt-coach, user-profile, soul, portrait) live in `buildingopen/claude-wrapped-lab`.
+Other reports (prompt-coach, user-profile, soul, portrait) live in `buildingopen/claude-entropy-lab`.
 The private dev repo is `federicodeponte/transcript-analyzer`.
 
 ## npm package

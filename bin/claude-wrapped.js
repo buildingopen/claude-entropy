@@ -187,8 +187,8 @@ function main() {
   }
 
   const dest = path.join(process.cwd(), 'wrapped.html');
-  // Don't copy if CWD is the package dir (running from repo checkout)
-  if (path.resolve(src) !== path.resolve(dest)) {
+  // Don't copy if CWD is the package dir (would overwrite template)
+  if (path.resolve(process.cwd()) !== path.resolve(scriptDir)) {
     fs.copyFileSync(src, dest);
   }
 

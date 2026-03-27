@@ -23,6 +23,7 @@
     "bin/",
     "generate_wrapped.py",
     "wrapped.html",
+    "extract.py",
     "patterns/*.py",
     "LICENSE",
     "README.md"

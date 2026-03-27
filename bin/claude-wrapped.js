@@ -189,7 +189,12 @@ function main() {
   const dest = path.join(process.cwd(), 'wrapped.html');
   // Don't copy if CWD is the package dir (would overwrite template)
   if (path.resolve(process.cwd()) !== path.resolve(scriptDir)) {
-    fs.copyFileSync(src, dest);
+    try {
+      fs.copyFileSync(src, dest);
+    } catch (e) {
+      console.error('Warning: Could not copy output to ' + dest + ' (' + e.code + ')');
+      console.error('Report available at: ' + src);
+    }
   }
 
   // Open in browser

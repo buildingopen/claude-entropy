@@ -26,7 +26,7 @@ Project names, prompts, and swear words are auto-stripped before publishing.
 Output: ./wrapped.html (auto-opens in browser)
 
 For more reports (prompt-coach, user-profile, soul, portrait):
-  npx claude-wrapped-lab <command>
+  npx claude-entropy-lab <command>
 `.trim();
 
 function parseArgs(argv) {
@@ -96,11 +96,11 @@ function main() {
     process.exit(0);
   }
 
-  // Redirect old subcommands to claude-wrapped-lab
+  // Redirect old subcommands to claude-entropy-lab
   const OLD_COMMANDS = ['prompt-coach', 'user-profile', 'soul', 'portrait'];
   if (args._[0] && OLD_COMMANDS.includes(args._[0].toLowerCase())) {
     console.error('The "' + args._[0] + '" report has moved to a separate package.');
-    console.error('Run: npx claude-wrapped-lab ' + args._[0]);
+    console.error('Run: npx claude-entropy-lab ' + args._[0]);
     process.exit(1);
   }
 
